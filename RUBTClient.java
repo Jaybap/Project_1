@@ -95,11 +95,10 @@ public class RUBTClient {
 			/** Initialize BitSet */
 			Bitfield= new BitSet(numPieces);
                         
-                        /** Initialize ByteArrayOutputStream */
-                        piecesDL= new ByteArrayOutputStream[numPieces];
-                        
-                        
-                        
+			/** Initialize ByteArrayOutputStream */
+			piecesDL= new ByteArrayOutputStream[numPieces];
+			for (int i = 0; i < numPieces; i++)
+				piecesDL[i] = new ByteArrayOutputStream();
 		}
 		catch (NullPointerException e){
 			System.err.println("ERROR: Torrent File does not exist.");

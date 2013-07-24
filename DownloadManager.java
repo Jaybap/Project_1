@@ -64,13 +64,16 @@ public class DownloadManager extends Thread {
              System.out.println("Original # of blocks "+ numBlks);
             for (int i = 0; i < client.numPieces; i++) {
                 if (client.Bitfield.get(i) != peer.peerbitfield.get(i) && !client.Bitfield.get(i) && peer.peerbitfield.get(i)) {
+					System.out.println("Request Piece " + i);
                     if (i==client.numPieces-1){
-                        numBlks=(torrent.file_length-((client.numPieces-1)*torrent.piece_length))/client.blockLength;
+                        numBlks=(int)Math.ceil((torrent.file_length-(client.numPieces-1)*torrent.piece_length)/client.blockLength);
                         System.out.println("Blocks for last piece "+numBlks);
                     }
                     for (int j = 0; j < numBlks; j++) {
-                        if (j==numBlks-1){
+						System.out.println("Request Block " + j);
+                        if (j == numBlks-1){
                              peer.request(i, j*client.blockLength, torrent.piece_length-(j*client.blockLength));
+							 System.out.println((j*client.blockLength)+"||||"+(torrent.piece_length-(j*client.blockLength)));
                         }
                         else peer.request(i, j*client.blockLength, client.blockLength);
                         int length = peer.getPeerResponseInt();
