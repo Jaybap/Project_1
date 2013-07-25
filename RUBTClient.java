@@ -47,6 +47,8 @@ public class RUBTClient {
 	public static int numBlocks = 0;
 	public static int numBlkPieceRatio = 0;
 	public static int numBlkLastPiece = 0;
+	public static int lastBlkSize = 0;
+	public static int lastPieceSize = 0;
 	
 	
 
@@ -82,11 +84,16 @@ public class RUBTClient {
 			}
 			
 			/** Set number of blocks */
-			numBlocks = (int)Math.ceil(torrent.file_length / blockLength);
+			numBlocks = (int)Math.ceil((double)torrent.file_length / (double)blockLength);
 			
 			/** Set blocks per piece */
-			numBlkPieceRatio = (int)Math.ceil(torrent.piece_length / blockLength);
-                        
+			numBlkPieceRatio = (int)Math.ceil((double)torrent.piece_length / (double)blockLength);
+
+			/** Set the last piece size */
+			lastPieceSize = torrent.file_length - (numPieces-1) * torrent.piece_length;
+			
+			/** Set the last block size */
+			lastBlkSize = lastPieceSize - ((int)Math.ceil((double)lastPieceSize/(double)blockLength) - 1) * blockLength;
                         
 			/** Create peerID */
 			peerID = setPeerId();
@@ -242,6 +249,28 @@ public class RUBTClient {
 		{
 			System.err.println("ERROR: Unable to parse torrent File. ");
 			return null;
+		}
+	}
+
+	/**
+	  *
+	  */
+	public void writeFile()
+	{
+		try{
+		BufferedOutputStream fileOutput = new BufferedOutputStream(new FileOutputStream(destinationName));
+		byte[] toFile = null;
+		for(ByteArrayOutputStream piece : piecesDL)
+		{
+			toFile = piece.toByteArray();
+			fileOutput.write(toFile);
+		}
+		fileOutput.flush();
+		fileOutput.close();
+		}
+		catch (IOException e)
+		{
+			System.err.println("it broke");
 		}
 	}
 

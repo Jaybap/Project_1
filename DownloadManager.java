@@ -61,40 +61,43 @@ public class DownloadManager extends Thread {
             System.out.println(peer.peerbitfield.toString());
             peer.interested();
             int numBlks=client.numBlkPieceRatio;
-             System.out.println("Original # of blocks "+ numBlks);
+            System.out.println("Original # of blocks "+ numBlks);
+			int total = 0;
             for (int i = 0; i < client.numPieces; i++) {
                 if (client.Bitfield.get(i) != peer.peerbitfield.get(i) && !client.Bitfield.get(i) && peer.peerbitfield.get(i)) {
 					System.out.println("Request Piece " + i);
                     if (i==client.numPieces-1){
-                        numBlks=(int)Math.ceil((torrent.file_length-(client.numPieces-1)*torrent.piece_length)/client.blockLength);
+                        numBlks=(int)Math.ceil((double)client.lastPieceSize/(double)client.blockLength);
                         System.out.println("Blocks for last piece "+numBlks);
                     }
                     for (int j = 0; j < numBlks; j++) {
 						System.out.println("Request Block " + j);
                         if (j == numBlks-1){
-                             peer.request(i, j*client.blockLength, torrent.piece_length-(j*client.blockLength));
-							 System.out.println((j*client.blockLength)+"||||"+(torrent.piece_length-(j*client.blockLength)));
+                            /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+							/* this calculation is wrong and must be redone in order to get a proper last block size of 4253*/
+							if (i == client.numPieces - 1)
+								peer.request(i, j*client.blockLength, client.lastBlkSize);
+							else
+								peer.request(i, j*client.blockLength, torrent.piece_length-(j*client.blockLength));
+							/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
                         }
                         else peer.request(i, j*client.blockLength, client.blockLength);
                         int length = peer.getPeerResponseInt();
-                        System.out.println(length);
+                        //System.out.println(length - 9);
                         byte[] block = new byte[length - 9];
                         System.arraycopy(peer.getPeerResponse(length), 9, block, 0, length - 9);
                         try {
                             client.piecesDL[i].write(block);
+							total += block.length;
+							System.out.println(total+"/"+torrent.file_length);
                         } catch (IOException ex) {
                             Logger.getLogger(DownloadManager.class.getName()).log(Level.SEVERE, null, ex);
                         }
 
                     }
                 }
-
-
-
             }
-
-
-
+			client.writeFile();
         }
     }
 

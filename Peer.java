@@ -501,9 +501,11 @@ public class Peer {
             return peer2client.readInt();
         } catch (IOException e) {
             terminateSocketConnections();
+			System.out.println("first "+e.toString());
             System.err.println("ERROR: Unable to receive peer response. ");
             return -1;
         } catch (Exception e) {
+			System.out.println("second "+e.toString());
             System.err.println("ERROR: Unable to receive peer response. ");
             return -1;
         }
