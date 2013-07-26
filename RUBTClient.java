@@ -126,7 +126,7 @@ public class RUBTClient {
 
 		/* Global Variables */
 		RUBTClient client;
-		TrackerGetr tracker;
+		Tracker tracker;
 		String localPeer ="";
 
 		/** Check if valid number of arguments in the command line */ 
@@ -154,7 +154,7 @@ public class RUBTClient {
 		System.out.println("numBlkLastPiece: " + client.getNumBlkLastPiece());
 
                 /** Initialize Tracker */
-		tracker = new TrackerGetr(client, torrent);
+		tracker = new Tracker(client, torrent);
 		
 		/* ================ */
 		/* Print Statements */
