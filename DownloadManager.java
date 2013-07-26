@@ -20,13 +20,13 @@ import java.util.logging.Logger;
  */
 public class DownloadManager extends Thread {
 
-    private TrackerGetr tracker;
+    private Tracker tracker;
     private TorrentInfo torrent;
     private ArrayList<Peer> peerList;
     private RUBTClient client;
     private boolean stillRunning;
 
-    public DownloadManager(RUBTClient r, TrackerGetr t) {
+    public DownloadManager(RUBTClient r, Tracker t) {
         client = r;
         torrent = r.getTorrentInfo();
         tracker = t;
