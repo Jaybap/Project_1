@@ -58,9 +58,9 @@ public class DownloadManager extends Thread {
 			{
 				System.err.println("ERROR: Could not create peer. ");
 			}
+			for(Peer p : peers)
+				p.start();
 		}
-		
-		client.writeFile();
     }
 
     /* +++++++++++++++++++++++++++++++ GET METHODS +++++++++++++++++++++++++++++++++++ */
@@ -77,6 +77,11 @@ public class DownloadManager extends Thread {
 	{
 		RUBTClient.piecesDL[index] = piece;
 		RUBTClient.Bitfield.set(index);
+		if (RUBTClient.Bitfield.cardinality() == RUBTClient.numPieces)
+		{
+			// this.closePeers();
+			RUBTClient.writeFile();
+		}
 	}
 
 	/** METHOD: Determine whether or not the piece of the file specified by index

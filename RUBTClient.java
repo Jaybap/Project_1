@@ -253,7 +253,7 @@ public class RUBTClient {
 	/**
 	  *
 	  */
-	public void writeFile()
+	public static void writeFile()
 	{
 		try{
 		BufferedOutputStream fileOutput = new BufferedOutputStream(new FileOutputStream(destinationName));

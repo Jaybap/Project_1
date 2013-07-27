@@ -237,7 +237,8 @@ public class Peer extends Thread{
             System.out.println("Original # of blocks "+ numBlks);
 			int total = 0;
             for (int i = 0; i < RUBTClient.numPieces; i++) {
-                if (RUBTClient.Bitfield.get(i) != peerbitfield.get(i) && !RUBTClient.Bitfield.get(i) && peerbitfield.get(i)) {
+                if (!DownloadManager.hasPiece(i) && peerbitfield.get(i)) {
+					ByteArrayOutputStream currentPiece = new ByteArrayOutputStream();
 					System.out.println("Request Piece " + i);
                     if (i == RUBTClient.numPieces-1){
                         numBlks = (int)Math.ceil((double)RUBTClient.lastPieceSize/(double)RUBTClient.blockLength);
@@ -257,8 +258,17 @@ public class Peer extends Thread{
                         System.arraycopy(getPeerResponse(length), 9, block, 0, length - 9);
 						total += block.length;
 						
+						try
+						{
+							currentPiece.write(block);
+						}
+						catch(IOException e)
+						{
+							System.err.println("Error: Problem saving block " + j + " of piece " + i);
+						}
 						System.out.println(total+"/"+RUBTClient.torrent.file_length);
                     }
+					DownloadManager.savePiece(currentPiece, i);
                 }
             }
         }
