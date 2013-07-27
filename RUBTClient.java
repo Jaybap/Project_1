@@ -11,7 +11,7 @@ import java.util.BitSet;
  * Main Functions:
  * 1) Capture torrent FILE and destination FILE
  * 2) Create Client
- * 3) Initiate TrackerGtr
+ * 3) Initiate Tracker
  * 4)
  */
 
@@ -30,13 +30,13 @@ public class RUBTClient {
 
 	/** Client Information */
 	public static String peerID;
-        public static BitSet Bitfield;
+	public static BitSet Bitfield;
 
 	/** Peer Information */
 	public static ArrayList<Peer> peer;
 	
 	/** Download Information */
-        public ByteArrayOutputStream [] piecesDL;
+	public static ByteArrayOutputStream [] piecesDL;
 	public int bytesDownloaded;
 	public int bytesUploaded;
 	public int bytesRemaining;
@@ -104,8 +104,6 @@ public class RUBTClient {
                         
 			/** Initialize ByteArrayOutputStream */
 			piecesDL= new ByteArrayOutputStream[numPieces];
-			for (int i = 0; i < numPieces; i++)
-				piecesDL[i] = new ByteArrayOutputStream();
 		}
 		catch (NullPointerException e){
 			System.err.println("ERROR: Torrent File does not exist.");

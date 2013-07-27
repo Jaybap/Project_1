@@ -5,7 +5,7 @@ import java.util.*;
 import java.nio.*;
 import java.util.BitSet;
 
-public class Peer {
+public class Peer extends Thread{
 
     /**
      * It has methods to perform handshake, alive, interested, and other
@@ -209,6 +209,60 @@ public class Peer {
             System.err.println("ERROR: Could not terminate open socket connections. ");
         }
     }
+
+	/**
+	  * Method: Running the program
+	  */
+	public void run(){
+		/* Set up connection with Peer */
+        setPeerConnection();
+
+        /* Establish handshake */
+        sendHandshake(getPeerID(), RUBTClient.torrent.info_hash);
+        System.out.println("Handshake sent");
+
+        /* Receive and verify handshake */
+        if (!verifyHandshake(RUBTClient.torrent.info_hash)) {
+            System.err.println("ERROR: Unable to verify handshake. ");
+        } else {
+            int len = getPeerResponseInt();
+            System.out.println(len);
+            byte message = getPeerResponseByte();
+            System.out.println(message);
+            byte[] peerbits = getPeerResponse(len - 1);
+            receiveBitfield(peerbits);
+            System.out.println(peerbitfield.toString());
+            interested();
+            int numBlks = RUBTClient.numBlkPieceRatio;
+            System.out.println("Original # of blocks "+ numBlks);
+			int total = 0;
+            for (int i = 0; i < RUBTClient.numPieces; i++) {
+                if (RUBTClient.Bitfield.get(i) != peerbitfield.get(i) && !RUBTClient.Bitfield.get(i) && peerbitfield.get(i)) {
+					System.out.println("Request Piece " + i);
+                    if (i == RUBTClient.numPieces-1){
+                        numBlks = (int)Math.ceil((double)RUBTClient.lastPieceSize/(double)RUBTClient.blockLength);
+                        System.out.println("Blocks for last piece "+numBlks);
+                    }
+                    for (int j = 0; j < numBlks; j++) {
+						System.out.println("Request Block " + j);
+                        if (j == numBlks-1){
+							if (i == RUBTClient.numPieces - 1)
+								request(i, j*RUBTClient.blockLength, RUBTClient.lastBlkSize);
+							else
+								request(i, j*RUBTClient.blockLength, RUBTClient.torrent.piece_length-(j*RUBTClient.blockLength));
+                        }
+                        else request(i, j*RUBTClient.blockLength, RUBTClient.blockLength);
+                        int length = getPeerResponseInt();
+                        byte[] block = new byte[length - 9];
+                        System.arraycopy(getPeerResponse(length), 9, block, 0, length - 9);
+						total += block.length;
+						
+						System.out.println(total+"/"+RUBTClient.torrent.file_length);
+                    }
+                }
+            }
+        }
+	}
     /* ================================================================================ */
     /* 										Messages 									*/
     /* ================================================================================ */
