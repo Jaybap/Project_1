@@ -6,7 +6,7 @@ import java.nio.*;
 import java.util.BitSet;
 import java.security.MessageDigest;
 
-public class Peer extends Thread{
+public class Peer extends Thread {
 
     /**
      * It has methods to perform handshake, alive, interested, and other
@@ -31,6 +31,7 @@ public class Peer extends Thread{
     public boolean connected = false;
     public boolean handshakeConfirmed = false;
     public boolean[] booleanBitField = null;
+    public boolean incoming = false;
     /**
      * BOOLEAN Peer Status
      */
@@ -62,13 +63,15 @@ public class Peer extends Thread{
     /* ================================================================================ */
     /* 									Peer Constructor								*/
     /* ================================================================================ */
-    public Peer(String IpNum, int peerPortNum, String id) {
-        if (!id == null && !id.equals(""))
-			this.peerID = id.getBytes();
+    public Peer(String IpNum, int peerPortNum, boolean incoming, String id) {
+        if (!(id == null) && !(id.equals(""))) {
+            this.peerID = id.getBytes();
+        }
         this.peerIP = IpNum;
         this.peerPort = peerPortNum;
         this.booleanBitField = new boolean[RUBTClient.numPieces];
-		start();
+        this.incoming = incoming;
+        start();
     }
 
     /* ================================================================================ */
@@ -160,7 +163,7 @@ public class Peer extends Thread{
             peer2client.read(handshakeResponse);
 
             byte[] buffer = new byte[20];
-			//System.arraycopy(handshakeResponse, );
+            //System.arraycopy(handshakeResponse, );
             //not yet
             /**
              * Extract info hash from handshake response
@@ -187,32 +190,33 @@ public class Peer extends Thread{
         return true;
     }
 
-	/**  Function will compute the SHA-1 hash of a piece and compare it to the SHA-1
-	  *  from the meta-info torrent file
-	  *
-	  *  @param piece The byte array of the piece which was downloaded from the peer
-	  *  @param index The index number of the piece.
-	  *  @return True if the piece matches the SHA-1 hash from the meta-info torrent file otherwise false.
-	  */
-	public boolean verifySHA(byte[] piece, int index)
-	{
-		MessageDigest digest = null;
-		try
-		{
-			digest = MessageDigest.getInstance("SHA");
-		}
-		catch(Exception e)
-		{
-			System.out.println("Bad SHA algorithm");
-			return false;
-		}
-		byte[] hash = digest.digest(piece);
-		byte[] info_hash = RUBTClient.torrent.piece_hashes[index].array();
-		for(int i = 0; i < hash.length; i++)
-			if (hash[i] != info_hash[i])
-				return false;
-		return true;
-	}
+    /**
+     * Function will compute the SHA-1 hash of a piece and compare it to the
+     * SHA-1 from the meta-info torrent file
+     *
+     * @param piece The byte array of the piece which was downloaded from the
+     * peer
+     * @param index The index number of the piece.
+     * @return True if the piece matches the SHA-1 hash from the meta-info
+     * torrent file otherwise false.
+     */
+    public boolean verifySHA(byte[] piece, int index) {
+        MessageDigest digest = null;
+        try {
+            digest = MessageDigest.getInstance("SHA");
+        } catch (Exception e) {
+            System.out.println("Bad SHA algorithm");
+            return false;
+        }
+        byte[] hash = digest.digest(piece);
+        byte[] info_hash = RUBTClient.torrent.piece_hashes[index].array();
+        for (int i = 0; i < hash.length; i++) {
+            if (hash[i] != info_hash[i]) {
+                return false;
+            }
+        }
+        return true;
+    }
 
     /**
      * METHOD: Close peer socket
@@ -239,73 +243,115 @@ public class Peer extends Thread{
         }
     }
 
-	/**
-	  * Method: Running the program
-	  */
-	public void run(){
-		/* Set up connection with Peer */
-        setPeerConnection();
+    /**
+     * Method: Running the program
+     */
+    public void run() {
+        if (this.incoming) {
 
-        /* Establish handshake */
-        sendHandshake(getPeerID(), RUBTClient.torrent.info_hash);
-        System.out.println("Handshake sent");
+            setPeerConnection();
+            sendHandshake(RUBTClient.peerID, RUBTClient.torrent.info_hash);
+            sendBitfield(RUBTClient.Bitfield);
+        }
+        else {
 
-        /* Receive and verify handshake */
-        if (!verifyHandshake(RUBTClient.torrent.info_hash)) {
-            System.err.println("ERROR: Unable to verify handshake. ");
-        } else {
-            int len = getPeerResponseInt();
-            System.out.println(len);
-            byte message = getPeerResponseByte();
-            System.out.println(message);
-            byte[] peerbits = getPeerResponse(len - 1);
-            receiveBitfield(peerbits);
-            System.out.println(peerbitfield.toString());
-            interested();
-            int numBlks = RUBTClient.numBlkPieceRatio;
-            System.out.println("Original # of blocks "+ numBlks);
-			int total = 0;
-            for (int i = 0; i < RUBTClient.numPieces; i++) {
-                if (!DownloadManager.hasPiece(i, this) && peerbitfield.get(i)) {
-					ByteArrayOutputStream currentPiece = new ByteArrayOutputStream();
-					System.out.println("Request Piece " + i);
-                    if (i == RUBTClient.numPieces-1){
-                        numBlks = (int)Math.ceil((double)RUBTClient.lastPieceSize/(double)RUBTClient.blockLength);
-                        System.out.println("Blocks for last piece "+numBlks);
-                    }
-                    for (int j = 0; j < numBlks; j++) {
-						System.out.println("Request Block " + j);
-                        if (j == numBlks-1){
-							if (i == RUBTClient.numPieces - 1)
-								request(i, j*RUBTClient.blockLength, RUBTClient.lastBlkSize);
-							else
-								request(i, j*RUBTClient.blockLength, RUBTClient.torrent.piece_length-(j*RUBTClient.blockLength));
+            /* Set up connection with Peer */
+            setPeerConnection();
+
+            /* Establish handshake */
+            sendHandshake(getPeerID(), RUBTClient.torrent.info_hash);
+            System.out.println("Handshake sent");
+
+            /* Receive and verify handshake */
+            if (!verifyHandshake(RUBTClient.torrent.info_hash)) {
+                System.err.println("ERROR: Unable to verify handshake. ");
+            } else {
+                int len = getPeerResponseInt();
+                System.out.println(len);
+                byte message = getPeerResponseByte();
+                System.out.println(message);
+                byte[] peerbits = getPeerResponse(len - 1);
+                receiveBitfield(peerbits);
+                System.out.println(peerbitfield.toString());
+                interested();
+                int numBlks = RUBTClient.numBlkPieceRatio;
+                System.out.println("Original # of blocks " + numBlks);
+                int total = 0;
+                for (int i = 0; i < RUBTClient.numPieces; i++) {
+                    if (!DownloadManager.hasPiece(i, this) && peerbitfield.get(i)) {
+                        ByteArrayOutputStream currentPiece = new ByteArrayOutputStream();
+                        System.out.println("Request Piece " + i);
+                        if (i == RUBTClient.numPieces - 1) {
+                            numBlks = (int) Math.ceil((double) RUBTClient.lastPieceSize / (double) RUBTClient.blockLength);
+                            System.out.println("Blocks for last piece " + numBlks);
                         }
-                        else request(i, j*RUBTClient.blockLength, RUBTClient.blockLength);
-                        int length = getPeerResponseInt();
-                        byte[] block = new byte[length - 9];
-                        System.arraycopy(getPeerResponse(length), 9, block, 0, length - 9);
-						total += block.length;
-						
-						try
-						{
-							currentPiece.write(block);
-						}
-						catch(IOException e)
-						{
-							System.err.println("Error: Problem saving block " + j + " of piece " + i);
-						}
-						System.out.println(total+"/"+RUBTClient.torrent.file_length);
+                        for (int j = 0; j < numBlks; j++) {
+                            System.out.println("Request Block " + j);
+                            if (j == numBlks - 1) {
+                                if (i == RUBTClient.numPieces - 1) {
+                                    request(i, j * RUBTClient.blockLength, RUBTClient.lastBlkSize);
+                                } else {
+                                    request(i, j * RUBTClient.blockLength, RUBTClient.torrent.piece_length - (j * RUBTClient.blockLength));
+                                }
+                            } else {
+                                request(i, j * RUBTClient.blockLength, RUBTClient.blockLength);
+                            }
+                            int length = getPeerResponseInt();
+                            byte[] block = new byte[length - 9];
+                            System.arraycopy(getPeerResponse(length), 9, block, 0, length - 9);
+                            total += block.length;
+
+                            try {
+                                currentPiece.write(block);
+                            } catch (IOException e) {
+                                System.err.println("Error: Problem saving block " + j + " of piece " + i);
+                            }
+                            System.out.println(total + "/" + RUBTClient.torrent.file_length);
+                        }
+                        if (verifySHA(currentPiece.toByteArray(), i)) {
+                            DownloadManager.savePiece(currentPiece, i, this);
+                        }
                     }
-					if	(verifySHA(currentPiece.toByteArray(), i))
-						DownloadManager.savePiece(currentPiece, i, this);
                 }
             }
         }
-	}
-    /* ================================================================================ */
-    /* 										Messages 									*/
-    /* ================================================================================ */
+    }
+        /* ================================================================================ */
+        /* 										Messages 									*/
+        /* ================================================================================ */
+
+    
+
+    public synchronized boolean sendBitfield(BitSet bitfield) {
+        try {
+            byte[] bitfield_bytes = new byte[(bitfield.length() - 1) / 8 + 1];
+
+            //Initialize to zero
+            for (int x = 0; x < bitfield_bytes.length; x++) {
+                bitfield_bytes[x] = (byte) 0;
+            }
+
+            //Converts Bitset to byte array
+            for (int i = 0; i < bitfield.length(); i++) {
+                if (bitfield.get(i)) {
+                    bitfield_bytes[i / 8] |= 1 << (7 - (i % 8));
+                }
+            }
+
+            ByteBuffer bitfield_buffer = ByteBuffer.allocate(5 + bitfield_bytes.length);
+            bitfield_buffer.putInt(1 + bitfield_bytes.length);
+            bitfield_buffer.put((byte) 5);
+            bitfield_buffer.put(bitfield_bytes);
+            client2peer.write(bitfield_buffer.array());
+            client2peer.flush();
+            System.out.println("Bitfield message sent");
+            return true;
+        } catch (Exception ioe) {
+            System.err.println(ioe.getMessage());
+            System.out.println("COULD NOT SEND BITFIELD MESSAGE");
+            return false;
+        }
+    }
 
     /**
      * Message: KEEP ALIVE
@@ -318,7 +364,7 @@ public class Peer extends Thread{
             /* ================ */
             /* Print Statements */
             /* ================ */
-            System.out.println("Sent keepAlive message to " + peerIP+":"+peerPort);
+            System.out.println("Sent keepAlive message to " + peerIP + ":" + peerPort);
 
             return true;
         } catch (IOException e) {
@@ -333,7 +379,7 @@ public class Peer extends Thread{
         try {
             client2peer.write(interested);
             client2peer.flush();
-            System.out.println("Sent interested message to " + peerIP+":"+peerPort);
+            System.out.println("Sent interested message to " + peerIP + ":" + peerPort);
             int length = peer2client.readInt();
             if ((int) peer2client.readByte() == 1) {
                 System.out.println("Unchoke received");
@@ -345,7 +391,7 @@ public class Peer extends Thread{
             /* ================ */
             /* Print Statements */
             /* ================ */
-           // System.out.println("Sent interested message to " + peerID);
+            // System.out.println("Sent interested message to " + peerID);
 
             peerInterested = true;
             return true;
@@ -537,15 +583,14 @@ public class Peer extends Thread{
         }
     }
 
-	/**
-	  *  METHOD: Sets this peers ID to the given value
-	  *
-	  *  @param 
-	  */
-	public void setPeerID(byte[] newID)
-	{
-		peeID = newID;
-	}
+    /**
+     * METHOD: Sets this peers ID to the given value
+     *
+     * @param
+     */
+    public void setPeerID(byte[] newID) {
+        peerID = newID;
+    }
 
     /* ================================================================================ */
     /* 									Get Methods										*/
@@ -605,11 +650,11 @@ public class Peer extends Thread{
             return peer2client.readInt();
         } catch (IOException e) {
             terminateSocketConnections();
-			System.out.println("first "+e.toString());
+            System.out.println("first " + e.toString());
             System.err.println("ERROR: Unable to receive peer response. ");
             return -1;
         } catch (Exception e) {
-			System.out.println("second "+e.toString());
+            System.out.println("second " + e.toString());
             System.err.println("ERROR: Unable to receive peer response. ");
             return -1;
         }
