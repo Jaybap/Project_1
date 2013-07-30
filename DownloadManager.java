@@ -51,15 +51,13 @@ public class DownloadManager extends Thread {
 				int newPort = Integer.parseInt(ipParts[1]);
 				System.out.println("PeerPort: " + newPort);
 
-				peers.add(new Peer(newIP, newPort));
+				peers.add(new Peer(newIP, newPort, null));
 				System.out.println("Peer has been added to List. ");
 			}
 			catch(Exception e)
 			{
 				System.err.println("ERROR: Could not create peer. ");
 			}
-			for(Peer p : peers)
-				p.start();
 		}
     }
 
@@ -73,10 +71,14 @@ public class DownloadManager extends Thread {
 	  *  @param piece A ByteArrayOutputStream containing the bytes of the piece.
 	  *  @param index The index of the piece.
 	  */
-	public static synchronized void savePiece(ByteArrayOutputStream piece, int index)
+	public static void savePiece(ByteArrayOutputStream piece, int index, Peer hasLock)
 	{
-		RUBTClient.piecesDL[index] = piece;
-		RUBTClient.Bitfield.set(index);
+		synchronized(hasLock)
+		{
+			RUBTClient.piecesDL[index] = piece;
+			RUBTClient.intBitField[index] = 1;
+			//RUBTClient.Bitfield.set(index);
+		}
 		if (RUBTClient.Bitfield.cardinality() == RUBTClient.numPieces)
 		{
 			// this.closePeers();
@@ -90,8 +92,14 @@ public class DownloadManager extends Thread {
 	  *  @param index The index number of the piece.
 	  *  @return True if the piece has been downloaded false if not.
 	  */
-	public static synchronized boolean hasPiece(int index)
+	public static synchronized boolean hasPiece(int index, Peer hasLock)
 	{
-		return RUBTClient.Bitfield.get(index);
+		synchronized(hasLock)
+		{//RUBTClient.Bitfield.get(index) &&
+			boolean returnThis =  RUBTClient.intBitField[index] == 0;
+			if (returnThis)
+				RUBTClient.intBitField[index] = 1;
+			return returnThis;
+		}
 	}
 }

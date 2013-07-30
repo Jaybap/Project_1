@@ -31,6 +31,7 @@ public class RUBTClient {
 	/** Client Information */
 	public static String peerID;
 	public static BitSet Bitfield;
+	public static int[] intBitField;
 
 	/** Peer Information */
 	public static ArrayList<Peer> peer;
@@ -101,6 +102,7 @@ public class RUBTClient {
 
 			/** Initialize BitSet */
 			Bitfield= new BitSet(numPieces);
+			intBitField = new int[numPieces];
                         
 			/** Initialize ByteArrayOutputStream */
 			piecesDL= new ByteArrayOutputStream[numPieces];

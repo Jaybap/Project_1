@@ -4,6 +4,7 @@ import java.net.*;
 import java.util.*;
 import java.nio.*;
 import java.util.BitSet;
+import java.security.MessageDigest;
 
 public class Peer extends Thread{
 
@@ -14,7 +15,7 @@ public class Peer extends Thread{
     /**
      * Peer Information
      */
-    public String peerID = null;
+    public byte[] peerID;
     public String peerIP = null;
     public int peerPort = 0;
     public Socket peerSocket = null;
@@ -61,11 +62,13 @@ public class Peer extends Thread{
     /* ================================================================================ */
     /* 									Peer Constructor								*/
     /* ================================================================================ */
-    public Peer(String IpNum, int peerPortNum) {
-        this.peerID = ""; //not provided to us?
+    public Peer(String IpNum, int peerPortNum, String id) {
+        if (!id == null && !id.equals(""))
+			this.peerID = id.getBytes();
         this.peerIP = IpNum;
         this.peerPort = peerPortNum;
         this.booleanBitField = new boolean[RUBTClient.numPieces];
+		start();
     }
 
     /* ================================================================================ */
@@ -156,9 +159,8 @@ public class Peer extends Thread{
         try {
             peer2client.read(handshakeResponse);
 
-            /**
-             * Extract peer ID from handshake response
-             */
+            byte[] buffer = new byte[20];
+			//System.arraycopy(handshakeResponse, );
             //not yet
             /**
              * Extract info hash from handshake response
@@ -184,6 +186,33 @@ public class Peer extends Thread{
         handshakeConfirmed = true;
         return true;
     }
+
+	/**  Function will compute the SHA-1 hash of a piece and compare it to the SHA-1
+	  *  from the meta-info torrent file
+	  *
+	  *  @param piece The byte array of the piece which was downloaded from the peer
+	  *  @param index The index number of the piece.
+	  *  @return True if the piece matches the SHA-1 hash from the meta-info torrent file otherwise false.
+	  */
+	public boolean verifySHA(byte[] piece, int index)
+	{
+		MessageDigest digest = null;
+		try
+		{
+			digest = MessageDigest.getInstance("SHA");
+		}
+		catch(Exception e)
+		{
+			System.out.println("Bad SHA algorithm");
+			return false;
+		}
+		byte[] hash = digest.digest(piece);
+		byte[] info_hash = RUBTClient.torrent.piece_hashes[index].array();
+		for(int i = 0; i < hash.length; i++)
+			if (hash[i] != info_hash[i])
+				return false;
+		return true;
+	}
 
     /**
      * METHOD: Close peer socket
@@ -237,7 +266,7 @@ public class Peer extends Thread{
             System.out.println("Original # of blocks "+ numBlks);
 			int total = 0;
             for (int i = 0; i < RUBTClient.numPieces; i++) {
-                if (!DownloadManager.hasPiece(i) && peerbitfield.get(i)) {
+                if (!DownloadManager.hasPiece(i, this) && peerbitfield.get(i)) {
 					ByteArrayOutputStream currentPiece = new ByteArrayOutputStream();
 					System.out.println("Request Piece " + i);
                     if (i == RUBTClient.numPieces-1){
@@ -268,7 +297,8 @@ public class Peer extends Thread{
 						}
 						System.out.println(total+"/"+RUBTClient.torrent.file_length);
                     }
-					DownloadManager.savePiece(currentPiece, i);
+					if	(verifySHA(currentPiece.toByteArray(), i))
+						DownloadManager.savePiece(currentPiece, i, this);
                 }
             }
         }
@@ -506,6 +536,16 @@ public class Peer extends Thread{
             System.err.println("ERROR: Could not create socket connection with IP: " + peerIP + " and Port: " + peerPort);
         }
     }
+
+	/**
+	  *  METHOD: Sets this peers ID to the given value
+	  *
+	  *  @param 
+	  */
+	public void setPeerID(byte[] newID)
+	{
+		peeID = newID;
+	}
 
     /* ================================================================================ */
     /* 									Get Methods										*/
