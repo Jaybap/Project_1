@@ -12,7 +12,7 @@ import java.nio.*;
  * are only connecting to one)
  *
  */
-public class Tracker {
+public class Tracker extends Thread{
 
     /**
      * The Constant requestSize
@@ -73,7 +73,7 @@ public class Tracker {
             ByteBuffer.wrap(new byte[]{'f', 'a', 'i', 'l', 'u', 'r', 'e', ' ', 'r', 'e', 'a', 's', 'o', 'n'});
 
     /* ================================================================================ */
-    /* 								Tracker Constructor									*/
+    /*     							Tracker Constructor									*/
     /* ================================================================================ */
     Tracker(RUBTClient c, TorrentInfo t) {
 
@@ -94,6 +94,7 @@ public class Tracker {
         trackerIP = trackerUrl.getHost(); 					/* String */
         trackerPort = trackerUrl.getPort(); 				/* int */
         am_alive = true;
+        start();
     }
 
     /**
