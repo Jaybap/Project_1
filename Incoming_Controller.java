@@ -74,9 +74,7 @@ public class Incoming_Controller {
                     if (match) {
                         String response_string = new String(response);
                         String peer_id = response_string.substring(48);
-                        Peer peer = new Peer(ip.toString(), port);
-                        peer.setPeerConnection();
-                        peer.sendHandshake(client.getPeerId(), torrent.info_hash);
+                        Peer peer = new Peer(ip.toString(), port, true, peer_id);
                     }
                 }
             }
