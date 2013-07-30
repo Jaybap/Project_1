@@ -77,7 +77,7 @@ public class DownloadManager extends Thread {
 		{
 			RUBTClient.piecesDL[index] = piece;
 			RUBTClient.intBitField[index] = 1;
-			//RUBTClient.Bitfield.set(index);
+			RUBTClient.Bitfield.set(index);
 		}
 		if (RUBTClient.Bitfield.cardinality() == RUBTClient.numPieces)
 		{
@@ -95,7 +95,7 @@ public class DownloadManager extends Thread {
 	public static synchronized boolean hasPiece(int index, Peer hasLock)
 	{
 		synchronized(hasLock)
-		{//RUBTClient.Bitfield.get(index) &&
+		{
 			boolean returnThis =  RUBTClient.intBitField[index] == 0;
 			if (returnThis)
 				RUBTClient.intBitField[index] = 1;
