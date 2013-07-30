@@ -1,4 +1,3 @@
-
 import java.io.*;
 import java.net.*;
 import java.util.*;
@@ -47,19 +46,7 @@ public class Peer extends Thread {
     final static int KEY_PIECE = 7;
     final static int KEY_CANCEL = 8;
     final static int KEY_PORT = 9;
-    /**
-     * Set the byte arrays for the static peer messages
-     */
-    final static byte[] keep_alive = {0, 0, 0, 0};
-    final static byte[] choke = {0, 0, 0, 1, 0};
-    final static byte[] unchoke = {0, 0, 0, 1, 1};
-    final static byte[] interested = {0, 0, 0, 1, 2};
-    final static byte[] uninterested = {0, 0, 0, 1, 3};
-    final static byte[] have = {0, 0, 0, 5, 4};
-    final static byte[] request = {0, 0, 1, 3, 6};
-    final static byte[] piece = {0, 0, 0, 9, 7};
-    final static byte[] empty_bitfield = {0, 0, 0, 2, 5, 0};
-
+    
     /* ================================================================================ */
     /* 									Peer Constructor								*/
     /* ================================================================================ */
@@ -192,6 +179,7 @@ public class Peer extends Thread {
         return true;
     }
 
+
     /**
      * Function will compute the SHA-1 hash of a piece and compare it to the
      * SHA-1 from the meta-info torrent file
@@ -233,6 +221,7 @@ public class Peer extends Thread {
         }
     }
 
+    /* currently not being used */
     public void terminateSocketConnections() {
         try {
             if (!peerSocket.isClosed()) {
@@ -244,7 +233,7 @@ public class Peer extends Thread {
             System.err.println("ERROR: Could not terminate open socket connections. ");
         }
     }
-
+    
     /**
      * Method: Running the program
      */
@@ -266,7 +255,7 @@ public class Peer extends Thread {
 
             /* Receive and verify handshake */
             if (!verifyHandshake(RUBTClient.torrent.info_hash)) {
-                System.err.println("ERROR: Unable to verify handshake with peer " + getPeerIP() + ".");
+                System.err.println("ERROR: Unable to verify handshake. ");
             } else {
                 int len = getPeerResponseInt();
                 System.out.println(len);
@@ -275,13 +264,7 @@ public class Peer extends Thread {
                 byte[] peerbits = getPeerResponse(len - 1);
                 receiveBitfield(peerbits);
                 System.out.println(peerbitfield.toString());
-				/*
-				
-					add check for uninterested message
-				
-				
-				*/
-                interested();
+                Messages.interested(client2peer, peer2client);
                 int numBlks = RUBTClient.numBlkPieceRatio;
                 System.out.println("Original # of blocks " + numBlks);
                 int total = 0;
@@ -297,12 +280,12 @@ public class Peer extends Thread {
                             System.out.println("Request Block " + j);
                             if (j == numBlks - 1) {
                                 if (i == RUBTClient.numPieces - 1) {
-                                    request(i, j * RUBTClient.blockLength, RUBTClient.lastBlkSize);
+                                    Messages.request(i, j * RUBTClient.blockLength, RUBTClient.lastBlkSize, client2peer);
                                 } else {
-                                    request(i, j * RUBTClient.blockLength, RUBTClient.torrent.piece_length - (j * RUBTClient.blockLength));
+                                    Messages.request(i, j * RUBTClient.blockLength, RUBTClient.torrent.piece_length - (j * RUBTClient.blockLength), client2peer);
                                 }
                             } else {
-                                request(i, j * RUBTClient.blockLength, RUBTClient.blockLength);
+                                Messages.request(i, j * RUBTClient.blockLength, RUBTClient.blockLength, client2peer);
                             }
                             int length = getPeerResponseInt();
                             byte[] block = new byte[length - 9];
@@ -328,7 +311,17 @@ public class Peer extends Thread {
         /* 										Messages 									*/
         /* ================================================================================ */
 
-    
+    public void receiveBitfield(byte[] response) {
+        peerbitfield = new BitSet();
+        int index = 0;
+        for (byte b : response) {
+            int h = (int) b;
+            for (int j = 7; j >= 0; j--, index++) {
+                int shifted = h >> j;
+                peerbitfield.set(index, ((shifted & 1) == 1));
+            }
+        }
+    }
 
     public synchronized boolean sendBitfield(BitSet bitfield) {
         try {
@@ -361,204 +354,6 @@ public class Peer extends Thread {
         }
     }
 
-    /**
-     * Message: KEEP ALIVE
-     */
-    public boolean keepAlive() {
-        try {
-            client2peer.write(keep_alive);
-            client2peer.flush();
-
-            /* ================ */
-            /* Print Statements */
-            /* ================ */
-            System.out.println("Sent keepAlive message to " + peerIP + ":" + peerPort);
-
-            return true;
-        } catch (IOException e) {
-            return false;
-        }
-    }
-
-    /**
-     * Message: INTERESTED
-     */
-    public boolean interested() {
-        try {
-            client2peer.write(interested);
-            client2peer.flush();
-            System.out.println("Sent interested message to " + peerIP + ":" + peerPort);
-            int length = peer2client.readInt();
-            if ((int) peer2client.readByte() == 1) {
-                System.out.println("Unchoke received");
-            } else {
-                return false;
-            }
-
-
-            /* ================ */
-            /* Print Statements */
-            /* ================ */
-            // System.out.println("Sent interested message to " + peerID);
-
-            peerInterested = true;
-            return true;
-        } catch (IOException e) {
-            terminateSocketConnections();
-            System.err.println("ERROR: Unable to send interested message. ");
-            return false;
-        } catch (Exception e) {
-            System.err.println("ERROR: Unable to send interested message. ");
-            return false;
-        }
-    }
-
-    /**
-     * Message: Uninterested
-     */
-    public boolean uninterested() {
-        try {
-            client2peer.write(uninterested);
-            client2peer.flush();
-
-            /* ================ */
-            /* Print Statements */
-            /* ================ */
-            System.out.println("Sent uninterested message to " + peerID);
-
-            peerInterested = false;
-            return true;
-        } catch (IOException e) {
-            terminateSocketConnections();
-            System.err.println("ERROR: Unable to send uninterested message. ");
-            return false;
-        } catch (Exception e) {
-            System.err.println("ERROR: Unable to send uninterested message. ");
-            return false;
-        }
-    }
-
-    /**
-     * Message: CHOKE
-     */
-    public boolean choke() {
-        try {
-            client2peer.write(choke);
-            client2peer.flush();
-
-            /* ================ */
-            /* Print Statements */
-            /* ================ */
-            System.out.println("Sent choke message to " + peerID);
-
-            peerChoking = true;
-            return true;
-        } catch (IOException e) {
-            terminateSocketConnections();
-            System.err.println("ERROR: Unable to send choke message. ");
-            return false;
-        } catch (Exception e) {
-            System.err.println("ERROR: Unable to send choke message. ");
-            return false;
-        }
-    }
-
-    /**
-     * Message: UNCHOKE
-     */
-    public boolean unchoke() {
-        try {
-            client2peer.write(unchoke);
-            client2peer.flush();
-
-            /* ================ */
-            /* Print Statements */
-            /* ================ */
-            System.out.println("Sent unchoke message to " + peerID);
-
-            peerChoking = false;
-            return true;
-        } catch (IOException e) {
-            terminateSocketConnections();
-            System.err.println("ERROR: Unable to send unchoke message. ");
-            return false;
-        } catch (Exception e) {
-            System.err.println("ERROR: Unable to send choke message. ");
-            return false;
-        }
-    }
-
-    /**
-     * Message: Have
-     */
-    public boolean have(int piece_index) {
-        try {
-            if (!peerSocket.isClosed()) {
-                ByteBuffer hByteBuffer = ByteBuffer.allocate(9);
-                hByteBuffer.put(new byte[]{0, 0, 0, 5, 4});
-                hByteBuffer.putInt(piece_index);
-                client2peer.write(hByteBuffer.array());
-                client2peer.flush();
-
-                /* ================ */
-                /* Print Statements */
-                /* ================ */
-                System.out.println("Have message for piece " + piece_index + " sent to peer " + peerID);
-                return true;
-            } else {
-                System.err.println("Socket closed at " + peerID);
-                return false;
-            }
-        } catch (IOException e) {
-            terminateSocketConnections();
-            System.err.println("ERROR: Unable to send have message to " + peerID);
-            return false;
-        } catch (Exception e) {
-            System.err.println("ERROR: Unable to send have message to " + peerID);
-            return false;
-        }
-    }
-
-    //Note: working on this
-    public boolean request(int position, int start, int size) {
-        try {
-            ByteBuffer rByteBuffer = ByteBuffer.allocate(17);
-            rByteBuffer.put(new byte[]{0, 0, 0, 13, 6});
-            rByteBuffer.putInt(position);
-            rByteBuffer.putInt(start);
-            rByteBuffer.putInt(size);
-            client2peer.write(rByteBuffer.array());
-            client2peer.flush();
-
-
-            System.out.println("Sent request message. ");
-            return true;
-        } catch (IOException e) {
-            terminateSocketConnections();
-            System.err.println("ERROR: Unable to sent request message. ");
-            return false;
-        } catch (Exception e) {
-            System.err.println("ERROR: Unable to sent request message. ");
-            return false;
-        }
-    }
-
-    public void receiveBitfield(byte[] response) {
-        peerbitfield = new BitSet();
-        int index = 0;
-        for (byte b : response) {
-            int h = (int) b;
-            for (int j = 7; j >= 0; j--, index++) {
-                int shifted = h >> j;
-                peerbitfield.set(index, ((shifted & 1) == 1));
-            }
-        }
-    }
-
-    //Note: working on this
-    public boolean piece() {
-        return false;
-    }
 
     /* ================================================================================ */
     /* 									Set Methods										*/
