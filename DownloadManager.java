@@ -6,6 +6,7 @@ import java.util.Calendar;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.PriorityQueue;
+import java.io.*;
 import java.io.ByteArrayOutputStream;
 import java.util.Queue;
 import java.util.Vector;
@@ -77,6 +78,7 @@ public class DownloadManager extends Thread {
 			RUBTClient.piecesDL[index] = piece;
 			RUBTClient.intBitField[index] = 2; // has piece
 			RUBTClient.Bitfield.set(index);
+			saveDownloadState();
 		}
 		if (RUBTClient.Bitfield.cardinality() == RUBTClient.numPieces)
 		{
@@ -100,5 +102,26 @@ public class DownloadManager extends Thread {
 				RUBTClient.intBitField[index] = 1; // downloading piece
 			return returnThis;
 		}
+	}
+
+	/**
+	 *  METHOD: Writes the current state of the download to disk.
+	 */
+	public synchronized static void saveDownloadState()
+	{	
+		File f = new File(RUBTClient.torrentName + ".save");
+		try {
+			FileOutputStream fileOut = new FileOutputStream(f);
+	        ObjectOutputStream out = new ObjectOutputStream(fileOut);
+			for(ByteArrayOutputStream b : RUBTClient.piecesDL)
+				if (b == null)
+					out.writeObject(new byte[0]);
+				else
+					out.writeObject(b.toByteArray());
+	        out.close();
+	        fileOut.close();
+		} catch (IOException e) {
+			System.err.println("Error: Problem occured saving the current state of the file.");
+		} 
 	}
 }

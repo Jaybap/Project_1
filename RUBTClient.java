@@ -138,7 +138,10 @@ public class RUBTClient {
 
 		/** Initialize Client */
 		client = new RUBTClient(args[0], args[1]);
-		 
+		
+		/* Check for saved state files */
+		client.findSavedState();
+		
 		/* ================ */
 		/* Print Statements */
 		/* ================ */	
@@ -207,6 +210,38 @@ public class RUBTClient {
 	/* 									METHODS  										*/  
 	/* ================================================================================ */
 
+	/**
+	  *  METHOD: Checks to see if there is a previously saved download state for this torrent file
+	  */
+	public void findSavedState()
+	{	
+		File f = new File(torrentName + ".save");
+		
+		try {
+			FileInputStream fileIn = new FileInputStream(f);
+			ObjectInputStream in = new ObjectInputStream(fileIn);
+			for(int i = 0; i < numPieces; i++)
+			{
+				byte[] buffer = (byte[]) in.readObject();
+				if (buffer.length == 0)
+					piecesDL[i] = null;
+				else
+				{
+					piecesDL[i] = new ByteArrayOutputStream();
+					piecesDL[i].write(buffer);
+				}
+			}
+		}
+		catch (IOException e)
+		{
+			System.out.println("No save file");
+		}
+		catch (ClassNotFoundException e)
+		{
+			System.out.println("No save file");
+		}
+	}
+
 	/** METHOD: Checks number of arguments in command line */
 	public static boolean validateNumArgs(String[] args){
 		if ((args.length != 2)) {
@@ -219,7 +254,7 @@ public class RUBTClient {
 
 
 	/** METHOD: Parses Torrent File */
-	public static TorrentInfo torrent_parser(File torrent) {
+	public TorrentInfo torrent_parser(File torrent) {
 
 		/* Variables */
 		DataInputStream torrentReader;
@@ -272,7 +307,7 @@ public class RUBTClient {
 	}
 
 	/**
-	  *
+	  *  METHOD: Saves the final completed file to disk and removes any existing save files.
 	  */
 	public static void writeFile()
 	{
@@ -291,6 +326,18 @@ public class RUBTClient {
 		{
 			System.err.println("it broke");
 		}
+
+		// delete the save file
+		try
+		{
+    		File file = new File(torrentName + ".save");
+			if (!file.delete())
+				System.out.println("failed to delete");
+    	}
+		catch(Exception e)
+		{
+    		e.printStackTrace(); 
+    	}
 	}
 
 	/* ================================================================================ */
@@ -298,7 +345,7 @@ public class RUBTClient {
 	/* ================================================================================ */
 
 	/** METHOD: Set random peerID */
-	public static String setPeerId(){
+	public String setPeerId(){
 
 		/** Variables */
 		String randomPeerID = "";
