@@ -1,10 +1,9 @@
-
-
 import java.io.*;
 import java.util.Random;
 import java.util.Map;
 import java.util.ArrayList;
 import java.util.BitSet;
+import javax.swing.*;
 
 /**
  * RUBTClient Class
@@ -51,6 +50,8 @@ public class RUBTClient {
 	public static int lastBlkSize = 0;
 	public static int lastPieceSize = 0;
 	
+	public static boolean startDownload = true;
+	
 	
 
 
@@ -73,7 +74,7 @@ public class RUBTClient {
 			/** Initialize upload/download/remaining Bytes */
 			bytesDownloaded = 0;
 			bytesUploaded = 0;
-			bytesRemaining = torrent.file_length % blockLength;
+			bytesRemaining = torrent.file_length;
 			event = null;
 
 			/** Set number of pieces */
@@ -170,16 +171,34 @@ public class RUBTClient {
 		/* ================ */	
 		System.out.println("Connecting to Tracker. ");
 		
-		/** Connects to tracker */         
-		Map trackerResponse = tracker.connect(0,0,client.bytesRemaining, "started");
-		if(trackerResponse == null){
-			System.err.println("ERROR: Could not capture tracker response. ");
-		}		
-		
 		/** Start DownloadManager ("downloader" application thread) */
+		while(startDownload)
+		{
+			try
+			{
+				System.out.println("Waiting for the tracker...");
+				Thread.sleep(100);
+			}
+			catch(InterruptedException e)
+			{
+				System.err.println("Error: Problem sleeping main thread");
+			}
+		}
 		DownloadManager downloader = new DownloadManager(client, tracker);
 		downloader.start();
 		
+		while (JOptionPane.showConfirmDialog(null, "Would you like to end the program?", "Bit Torrent", JOptionPane.YES_NO_OPTION) != 0)
+		{
+			try
+			{
+				Thread.sleep(10000);
+			}
+			catch(InterruptedException e)
+			{
+				System.err.println("Error: Problem sleeping main thread");
+			}
+		}
+		System.exit(0);
 	}
 	
 	

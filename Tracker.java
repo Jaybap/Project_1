@@ -104,10 +104,11 @@ public class Tracker extends Thread{
     public void run() {
         while (am_alive) {
             try {
-                Thread.sleep(trackerInterval * 1000);
                 if (am_alive) {
                     connect(client.bytesDownloaded, client.bytesUploaded, client.bytesRemaining, null);
+					RUBTClient.startDownload = false;
                 }
+				Thread.sleep(trackerInterval * 1000);
             } catch (IOException e) {
                 System.err.println("Caught IOException: " + e.getMessage());
 
@@ -120,7 +121,7 @@ public class Tracker extends Thread{
     /* ================================================================================ */
     /* 									METHODS  										*/
     /* ================================================================================ */
-    public Map connect(int bytesDown, int bytesUp, int bytesRemaining, String event) throws IOException {
+    public synchronized Map connect(int bytesDown, int bytesUp, int bytesRemaining, String event) throws IOException {
 
         /**
          * Variables

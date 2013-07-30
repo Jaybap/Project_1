@@ -162,9 +162,11 @@ public class Peer extends Thread {
         try {
             peer2client.read(handshakeResponse);
 
+			// Extract the peer id from the handshake response
             byte[] buffer = new byte[20];
-            //System.arraycopy(handshakeResponse, );
-            //not yet
+            System.arraycopy(handshakeResponse, handshakeResponse.length - 21, buffer, 0, 20);
+			this.setPeerID(buffer);
+
             /**
              * Extract info hash from handshake response
              */
@@ -259,12 +261,12 @@ public class Peer extends Thread {
             setPeerConnection();
 
             /* Establish handshake */
-            sendHandshake(getPeerID(), RUBTClient.torrent.info_hash);
+            sendHandshake(RUBTClient.peerID, RUBTClient.torrent.info_hash);
             System.out.println("Handshake sent");
 
             /* Receive and verify handshake */
             if (!verifyHandshake(RUBTClient.torrent.info_hash)) {
-                System.err.println("ERROR: Unable to verify handshake. ");
+                System.err.println("ERROR: Unable to verify handshake with peer " + getPeerIP() + ".");
             } else {
                 int len = getPeerResponseInt();
                 System.out.println(len);
@@ -273,6 +275,12 @@ public class Peer extends Thread {
                 byte[] peerbits = getPeerResponse(len - 1);
                 receiveBitfield(peerbits);
                 System.out.println(peerbitfield.toString());
+				/*
+				
+					add check for uninterested message
+				
+				
+				*/
                 interested();
                 int numBlks = RUBTClient.numBlkPieceRatio;
                 System.out.println("Original # of blocks " + numBlks);
@@ -595,7 +603,7 @@ public class Peer extends Thread {
     /* ================================================================================ */
     /* 									Get Methods										*/
     /* ================================================================================ */
-    public String getPeerID() {
+    public byte[] getPeerID() {
         return peerID;
     }
 
