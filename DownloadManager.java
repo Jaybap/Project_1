@@ -1,4 +1,3 @@
-
 import java.awt.event.ActionEvent;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -51,7 +50,7 @@ public class DownloadManager extends Thread {
 				int newPort = Integer.parseInt(ipParts[1]);
 				System.out.println("PeerPort: " + newPort);
 
-				peers.add(new Peer(newIP, newPort, null));
+				peers.add(new Peer(newIP, newPort, false, null));
 				System.out.println("Peer has been added to List. ");
 			}
 			catch(Exception e)
