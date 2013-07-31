@@ -256,8 +256,8 @@ public class Peer extends Thread {
      */
     public void run() {
         setpoint:
-        while (am_alive) {
-            if (this.incoming) {
+		if (this.incoming) {
+			while (am_alive) {
 
                 setPeerConnection();
                 sendHandshake(RUBTClient.peerID, RUBTClient.torrent.info_hash);
@@ -343,75 +343,79 @@ public class Peer extends Thread {
                                     break;
                             }
                         }
-                    } else {
-
-                        /* Set up connection with Peer */
-                        setPeerConnection();
-
-                        /* Establish handshake */
-                        sendHandshake(RUBTClient.peerID, RUBTClient.torrent.info_hash);
-                        System.out.println("Handshake sent");
-
-                        /* Receive and verify handshake */
-                        if (!verifyHandshake(RUBTClient.torrent.info_hash)) {
-                            System.err.println("ERROR: Unable to verify handshake. ");
-                        } else {
-                            int len = getPeerResponseInt();
-                            System.out.println(len);
-                            byte message = getPeerResponseByte();
-                            System.out.println(message);
-                            byte[] peerbits = getPeerResponse(len - 1);
-                            receiveBitfield(peerbits);
-                            System.out.println(peerbitfield.toString());
-                            interested();
-                            int numBlks = RUBTClient.numBlkPieceRatio;
-                            System.out.println("Original # of blocks " + numBlks);
-                            int total = 0;
-                            while (am_alive) {
-                                for (int i = 0; i < RUBTClient.numPieces; i++) {
-                                    if (!DownloadManager.hasPiece(i, this) && peerbitfield.get(i)) {
-                                        ByteArrayOutputStream currentPiece = new ByteArrayOutputStream();
-                                        System.out.println("Request Piece " + i);
-                                        if (i == RUBTClient.numPieces - 1) {
-                                            numBlks = (int) Math.ceil((double) RUBTClient.lastPieceSize / (double) RUBTClient.blockLength);
-                                            System.out.println("Blocks for last piece " + numBlks);
-                                        }
-                                        for (int j = 0; j < numBlks; j++) {
-                                            System.out.println("Request Block " + j);
-                                            if (j == numBlks - 1) {
-                                                if (i == RUBTClient.numPieces - 1) {
-                                                    request(i, j * RUBTClient.blockLength, RUBTClient.lastBlkSize);
-                                                } else {
-                                                    request(i, j * RUBTClient.blockLength, RUBTClient.torrent.piece_length - (j * RUBTClient.blockLength));
-                                                }
-                                            } else {
-                                                request(i, j * RUBTClient.blockLength, RUBTClient.blockLength);
-                                            }
-                                            int length = getPeerResponseInt();
-                                            byte[] block = new byte[length - 9];
-                                            System.arraycopy(getPeerResponse(length), 9, block, 0, length - 9);
-                                            total += block.length;
-
-                                            try {
-                                                currentPiece.write(block);
-                                            } catch (IOException e) {
-                                                System.err.println("Error: Problem saving block " + j + " of piece " + i);
-                                            }
-                                            System.out.println(total + "/" + RUBTClient.torrent.file_length);
-                                        }
-                                        if (verifySHA(currentPiece.toByteArray(), i)) {
-                                            DownloadManager.savePiece(currentPiece, i, this);
-                                        }
-                                    }
-                                }
-                            }
-                        }
                     }
                 } catch (IOException ex) {
                     Logger.getLogger(Peer.class.getName()).log(Level.SEVERE, null, ex);
                 }
             }
         }
+		else 
+		{
+			/* Set up connection with Peer */
+			setPeerConnection();
+
+			/* Establish handshake */
+			sendHandshake(RUBTClient.peerID, RUBTClient.torrent.info_hash);
+			System.out.println("Handshake sent");
+
+			/* Receive and verify handshake */
+			if (!verifyHandshake(RUBTClient.torrent.info_hash)) {
+				System.err.println("ERROR: Unable to verify handshake. ");
+			}
+			else
+			{
+				System.out.println("Attempting to Download");
+				int len = getPeerResponseInt();
+				System.out.println(len);
+				byte message = getPeerResponseByte();
+				System.out.println(message);
+				byte[] peerbits = getPeerResponse(len - 1);
+				receiveBitfield(peerbits);
+				System.out.println(peerbitfield.toString());
+				interested();
+				int numBlks = RUBTClient.numBlkPieceRatio;
+				System.out.println("Original # of blocks " + numBlks);
+				int total = 0;
+				while (am_alive) {
+					for (int i = 0; i < RUBTClient.numPieces; i++) {
+						if (!DownloadManager.hasPiece(i, this) && peerbitfield.get(i)) {
+							ByteArrayOutputStream currentPiece = new ByteArrayOutputStream();
+							System.out.println("Request Piece " + i);
+							if (i == RUBTClient.numPieces - 1) {
+								numBlks = (int) Math.ceil((double) RUBTClient.lastPieceSize / (double) RUBTClient.blockLength);
+								System.out.println("Blocks for last piece " + numBlks);
+							}
+							for (int j = 0; j < numBlks; j++) {
+								System.out.println("Request Block " + j);
+								if (j == numBlks - 1) {
+									if (i == RUBTClient.numPieces - 1) {
+										request(i, j * RUBTClient.blockLength, RUBTClient.lastBlkSize);
+									} else {
+										request(i, j * RUBTClient.blockLength, RUBTClient.torrent.piece_length - (j * RUBTClient.blockLength));
+									}
+								} else {
+									request(i, j * RUBTClient.blockLength, RUBTClient.blockLength);
+								}
+								int length = getPeerResponseInt();
+								byte[] block = new byte[length - 9];
+								System.arraycopy(getPeerResponse(length), 9, block, 0, length - 9);
+								total += block.length;
+
+								try {
+									currentPiece.write(block);
+								} catch (IOException e) {
+									System.err.println("Error: Problem saving block " + j + " of piece " + i);
+								}
+								System.out.println(total + "/" + RUBTClient.torrent.file_length);
+							}
+							if (verifySHA(currentPiece.toByteArray(), i)) {
+								DownloadManager.savePiece(currentPiece, i, this);
+							}
+						}
+					}
+				}
+			}
+		}
     }
     /* ================================================================================ */
     /* 										Messages 									*/

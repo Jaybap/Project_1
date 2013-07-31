@@ -23,9 +23,10 @@ public class DownloadManager extends Thread {
 
     private Tracker tracker;
     private TorrentInfo torrent;
-	private ArrayList<Peer> peers = new ArrayList<Peer>();
+	private static ArrayList<Peer> peers = new ArrayList<Peer>();
     private RUBTClient client;
     private boolean stillRunning;
+	private static Object lock = new Object();
 
     public DownloadManager(RUBTClient r, Tracker t) {
         client = r;
@@ -62,7 +63,7 @@ public class DownloadManager extends Thread {
     }
 
     /* +++++++++++++++++++++++++++++++ GET METHODS +++++++++++++++++++++++++++++++++++ */
-    ArrayList<Peer> getPeerList() {
+    public static ArrayList<Peer> getPeerList() {
         return peers;
     }
 
@@ -79,11 +80,12 @@ public class DownloadManager extends Thread {
 			RUBTClient.intBitField[index] = 2; // has piece
 			RUBTClient.Bitfield.set(index);
 			saveDownloadState();
+			//broadCastHas(index);
 		}
 		if (RUBTClient.Bitfield.cardinality() == RUBTClient.numPieces)
 		{
-			// this.closePeers();
 			RUBTClient.writeFile();
+			closePeers();
 		}
 	}
 
@@ -123,5 +125,24 @@ public class DownloadManager extends Thread {
 		} catch (IOException e) {
 			System.err.println("Error: Problem occured saving the current state of the file.");
 		} 
+	}
+
+	/**
+	  *  METHOD: Closes all peer connections then destroys the threads.
+	  */
+	public static void closePeers()
+	{
+		ArrayList<Peer> list = getPeerList();
+		for(int i = 0; i < list.size(); i++)
+		{
+			list.get(i).am_alive = false;
+			list.get(i).terminateSocketConnections();
+		}
+	}
+
+	public static void broadCastHas(int index)
+	{
+		for(int i = 0; i < peers.size(); i++)
+			Messages.have(peers.get(i).peerSocket, peers.get(i).client2peer, index);
 	}
 }

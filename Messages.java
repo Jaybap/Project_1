@@ -131,7 +131,7 @@ public class Messages {
     /**
      * Message: Have
      */
-    public boolean have(Socket peerSocket, DataOutputStream client2peer, int piece_index) {
+    public static boolean have(Socket peerSocket, DataOutputStream client2peer, int piece_index) {
         try {
             if (!peerSocket.isClosed()) {
                 ByteBuffer hByteBuffer = ByteBuffer.allocate(9);
