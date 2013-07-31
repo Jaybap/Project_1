@@ -11,7 +11,12 @@ import javax.swing.*;
  * 1) Capture torrent FILE and destination FILE
  * 2) Create Client
  * 3) Initiate Tracker
- * 4)
+ * 4) Start Downloader
+ *
+ * @author Alex DeOliveira  [126-00-8635]
+ * @author Jason Baptista   [126-00-4630]
+ * @author Elizabeth Sanz   [127-00-8628]
+ * @version "project01"
  */
 
 public class RUBTClient {
@@ -56,7 +61,7 @@ public class RUBTClient {
 
 
 	/* ================================================================================ */
-	/* 								RUBTClient Constructor								*/  
+	/* RUBTClient Constructor								*/  
 	/* ================================================================================ */
 	
 	RUBTClient(String firstArg, String secondArg){
@@ -120,7 +125,7 @@ public class RUBTClient {
 
 
 	/* ================================================================================ */
-	/* 									MAIN	  										*/  
+	/* MAIN                                                                             */  
 	/* ================================================================================ */
 	
 	public static void main(String[] args) throws IOException, BencodingException {
@@ -211,7 +216,8 @@ public class RUBTClient {
 	/* ================================================================================ */
 
 	/**
-	  *  METHOD: Checks to see if there is a previously saved download state for this torrent file
+	  *  Method: Checks to see if there is a previously saved download state for this 
+	  *  torrent file
 	  */
 	public void findSavedState()
 	{	
@@ -242,7 +248,11 @@ public class RUBTClient {
 		}
 	}
 
-	/** METHOD: Checks number of arguments in command line */
+	/** METHOD: Checks number of arguments in command line 
+         * @param args, the arguments in the command line
+         * @return a boolean. true if valid number of arguments
+         *         otherwise false
+         */
 	public static boolean validateNumArgs(String[] args){
 		if ((args.length != 2)) {
 			System.err.println("ERROR: Invalid number of arguments");
@@ -253,7 +263,10 @@ public class RUBTClient {
 	}
 
 
-	/** METHOD: Parses Torrent File */
+	/** METHOD: Parses Torrent File 
+         * @param: torrent, the torrent file to be parsed
+         * @return a TorrentInfo object that gives more information on the torrent
+         */
 	public TorrentInfo torrent_parser(File torrent) {
 
 		/* Variables */
@@ -344,7 +357,10 @@ public class RUBTClient {
 	/* 									SET-METHODS  									*/  
 	/* ================================================================================ */
 
-	/** METHOD: Set random peerID */
+	/** METHOD: Set random peerID 
+         * @return the peer ID as a String 
+         *
+         */
 	public String setPeerId(){
 
 		/** Variables */
@@ -380,7 +396,7 @@ public class RUBTClient {
 	/* ================================================================================ */
 	/* 									GET-METHODS  									*/  
 	/* ================================================================================ */
-	
+
 	/** Retrieves TorrentInfo */
 	public TorrentInfo getTorrentInfo(){
 		return torrent;
@@ -407,7 +423,7 @@ public class RUBTClient {
 	}
 
 	/** Retrieves number of pieces */
-	public int getNumPieces(){
+	public static int getNumPieces(){
 		return numPieces;
 	}
 	
@@ -430,5 +446,9 @@ public class RUBTClient {
 	public String getPeerId(){
 		return peerID;
 	}
-
+        
+        /** Retrieves bit-field */
+        public static BitSet getBitfield(){
+            return Bitfield;
+        }
 }
