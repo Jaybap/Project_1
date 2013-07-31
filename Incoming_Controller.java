@@ -1,4 +1,3 @@
-
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -9,13 +8,15 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /*
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
+ * This class takes care of incoming connections from peers,
+ * checks peerlist, and reads the handshake from new peers.
+ * 
+ * @author Alex DeOliveira  [126-00-8635]
+ * @author Jason Baptista   [126-00-4630]
+ * @author Elizabeth Sanz   [127-00-8628]
+ * @version "project01"
  */
-/**
- *
- * @author jaybap
- */
+
 public class Incoming_Controller {
 
     private boolean am_alive = false;
@@ -32,6 +33,7 @@ public class Incoming_Controller {
         this.client = c;
     }
 
+    /* Spins the Incoming Controller Thread */
     public void run() {
 
         try {
@@ -89,6 +91,7 @@ public class Incoming_Controller {
 
     }
 
+    /* Method: Suicide, used to set am_alive false */
     public void suicide() {
         am_alive = false;
     }
