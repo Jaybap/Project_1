@@ -26,20 +26,21 @@ public class Incoming_Controller extends Thread {
     RUBTClient client;
     private boolean peer_is_interested = false;
     private boolean keepalive_sent = false;
-    private boolean receiveBitfield=false;
-    private boolean isClientchoking=true;
+    private boolean receiveBitfield = false;
+    private boolean isClientchoking = true;
+    private boolean handshake_confirmed=false;
     public BitSet peerbitfield = null;
-    
-    final  int KEY_CHOKE = 0;
-    final  int KEY_UNCHOKE = 1;
-    final  int KEY_INTERESTED = 2;
-    final  int KEY_UNINTERESTED = 3;
-    final  int KEY_HAVE = 4;
-    final  int KEY_BITFIELD = 5;
-    final  int KEY_REQUEST = 6;
-    final  int KEY_PIECE = 7;
-    final  int KEY_CANCEL = 8;
-    final  int KEY_PORT = 9;
+    final int KEY_CHOKE = 0;
+    final int KEY_UNCHOKE = 1;
+    final int KEY_INTERESTED = 2;
+    final int KEY_UNINTERESTED = 3;
+    final int KEY_HAVE = 4;
+    final int KEY_BITFIELD = 5;
+    final int KEY_REQUEST = 6;
+    final int KEY_PIECE = 7;
+    final int KEY_CANCEL = 8;
+    final int KEY_PORT = 9;
+    float upload_rate;
 
     Incoming_Controller(Tracker tracker, TorrentInfo torr, RUBTClient c) {
 
@@ -53,7 +54,7 @@ public class Incoming_Controller extends Thread {
 
         try {
             this.incoming = new ServerSocket(port);
-            while (am_alive) {
+          
                 Thread.yield();
 
 
@@ -64,9 +65,7 @@ public class Incoming_Controller extends Thread {
                 Socket peersocket = incoming.accept();
                 InetAddress ip = peersocket.getInetAddress();
                 int port = peersocket.getPort();
-                /**
-                 * Checks if the peer is in our peer list
-                 */
+                
                 DataInputStream frompeer = new DataInputStream(peersocket.getInputStream());
                 DataOutputStream topeer = new DataOutputStream(peersocket.getOutputStream());
 
@@ -87,6 +86,7 @@ public class Incoming_Controller extends Thread {
                 }
 
                 if (match) {
+                    handshake_confirmed=true;
                     String response_string = new String(response);
                     String peer_id = response_string.substring(48);
 
@@ -101,8 +101,12 @@ public class Incoming_Controller extends Thread {
 
                             int len = getPeerResponseInt(peersocket, topeer, frompeer);
                             if (len != 0) {
+                                long startTime = System.currentTimeMillis();
+                                byte[] message = Messages.getPeerResponse(len, peersocket, topeer, frompeer);
+                                float elapsed = (System.currentTimeMillis() - startTime) / 1000;
+                                upload_rate = len / elapsed;
+                                byte id = message[0];
 
-                                byte id = Messages.getPeerResponseByte(peersocket, topeer, frompeer);
 
                                 //if message received is not bitfield msg then sets the flag to false
                                 if (id != KEY_BITFIELD) {
@@ -119,19 +123,45 @@ public class Incoming_Controller extends Thread {
                                         break setpoint;
 
                                     case KEY_INTERESTED:
-                                        if (Messages.unchoke(peersocket, topeer, frompeer)) {
-                                            isClientchoking=false;
-                                            peer_is_interested = true;
-                                            System.out.println("Peer " + peer_id + " sent an interested message");
-                                        } else {
-                                            System.err.println("Peer " + peer_id + " sent illegal interested message. Violated Protocol so closing connection.");
-                                            terminateSocketConnections(peersocket, topeer, frompeer);
+                                        
+                                        if (handshake_confirmed){
+                                            
+                                        
+                                        for (int i = 0; i <= 2; i++) {
+                                            if (RUBTClient.uploadconnections[i] == null) {
+                                                RUBTClient.uploadconnections[i] = this;
+                                            }
                                         }
-                                        break;
+                                        for (int i = 0; i <= 2; i++) {
+                                            if (RUBTClient.uploadconnections[i] == this) {
+                                                Messages.unchoke(peersocket, topeer, frompeer);
+                                                isClientchoking = false;
+                                                peer_is_interested = true;
+                                                System.out.println("Peer " + peer_id + " sent an interested message");
+                                                System.out.println("Peer " + peer_id + " has been unchoked");
+                                                break setpoint;
+                                            }
+                                        }
+                                        
+                                            RUBTClient.choked_peers.add(this);
+                                            if (Messages.choke(topeer)) {
 
-                                    case KEY_UNINTERESTED:
+                                                System.out.println("Peer " + peer_id + " has been choked");
+                                            }
+                                        }
+                                        else {
+                                                System.err.println("Peer " + peer_id + " sent illegal interested message. Violated Protocol so closing connection.");
+                                                terminateSocketConnections(peersocket, topeer, frompeer);
+                                            }
+                                            break setpoint;
+
+                                        
+                                
+                            
+                        
+                        case KEY_UNINTERESTED:
                                         peer_is_interested = false;
-                                        break;
+                                        break setpoint;
 
                                     case KEY_HAVE:
                                         Messages.receiveHave(peersocket, topeer, frompeer,peerbitfield , peer_id);
@@ -151,13 +181,13 @@ public class Incoming_Controller extends Thread {
                                             System.out.println("Received bitfield out of sync... closing connection");
                                             this.suicide();
                                         }
-                                        break;
+                                        break setpoint;
 
                                     case KEY_REQUEST:
                                         if (isClientchoking) {
                                             System.err.println("Peer " + peer_id + " sent a request message while choked. Violated Protocol and so closing connection.");
                                             this.suicide();
-                                            break;
+                                            break setpoint;
                                         }
 
                                         int index = getPeerResponseInt(peersocket, topeer, frompeer);
@@ -176,21 +206,17 @@ public class Incoming_Controller extends Thread {
                                         break setpoint;
 
                                     default:
-                                        break;
+                                        break setpoint;
                                 }
                             }
                         }
-                    } catch (IOException e) {
+                    }  catch (IOException e) {
                         System.err.println("Caught IOException: " + e.getMessage());
-                        /*
-                         * Restarts incoming controller to listen to more conections from peers
-                         */
-                        run();
 
                     }
                 }
             }
-        } catch (IOException ex) {
+         catch (IOException ex) {
             Logger.getLogger(Incoming_Controller.class.getName()).log(Level.SEVERE, null, ex);
         }
     }
