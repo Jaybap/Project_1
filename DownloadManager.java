@@ -1,5 +1,3 @@
-package RUBTClient;
-
 import java.awt.event.ActionEvent;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -28,14 +26,15 @@ import java.util.logging.Logger;
 
 public class DownloadManager extends Thread {
 
+	private PriorityQueue<Rarity> rarelist;
     private Tracker tracker;
     private TorrentInfo torrent;
     private static ArrayList<Peer> peers = new ArrayList<Peer>();
     private RUBTClient client;
     private boolean stillRunning;
-	private static Object lock = new Object();
 
     public DownloadManager(RUBTClient r, Tracker t) {
+		rarelist = new PriorityQueue<Rarity>();
         client = r;
         torrent = r.getTorrentInfo();
         tracker = t;
@@ -47,26 +46,69 @@ public class DownloadManager extends Thread {
      */
     public void run() {
 		String delims = "[:]";
+		int id = 1;
 
         for(String peerFullIP : tracker.getpeerIPList())
 		{
 			String[] ipParts = peerFullIP.split(delims);
-			try
+			String newIP = ipParts[0];
+			// make sure it is one of the setup peers
+			if (newIP.matches("128\\.6\\.171\\.[345678]"))
 			{
-				String newIP = ipParts[0];
-				System.out.println("PeerIP: " + newIP);
-				
-				int newPort = Integer.parseInt(ipParts[1]);
-				System.out.println("PeerPort: " + newPort);
+				try
+				{
+					System.out.println("PeerIP: " + newIP);
+					
+					int newPort = Integer.parseInt(ipParts[1]);
+					System.out.println("PeerPort: " + newPort);
 
-				peers.add(new Peer(newIP, newPort, false, null));
-				System.out.println("Peer has been added to List. ");
-			}
-			catch(Exception e)
-			{
-				System.err.println("ERROR: Could not create peer. ");
+					peers.add(new Peer(newIP, newPort, false, null, id++));
+					System.out.println("Peer has been added to List. ");
+				}
+				catch(Exception e)
+				{
+					System.err.println("ERROR: Could not create peer. ");
+				}
 			}
 		}
+
+		ArrayList<Integer> temp = new ArrayList<Integer>();
+		for(int i = 0; i < peers.size(); i++)
+			temp.add(new Integer(i));
+
+		// make sure all peer threads have reached the point of having a bitfield message before allocating them pieces to request
+		while (temp.size() != 0)
+		{
+			try
+			{
+				Thread.sleep(2000);
+			}
+			catch(InterruptedException e)
+			{
+				System.err.println("The DownloadMananger is having trouble sleeping");
+			}
+			for (int i = 0; i < temp.size(); i++)
+			{
+				Peer p = peers.get(temp.get(i));
+				System.out.println(p.getState());
+				if (p.getState() == Thread.State.TIMED_WAITING)
+				{
+					temp.remove(i);
+					i--;
+				}
+			}
+		}
+
+		for(int i = 0; i < RUBTClient.numPieces; i++)
+		{
+			Rarity newRare = new Rarity(i, peers);
+			rarelist.add(newRare);
+			System.out.println(newRare.toString());
+		}
+	
+		/*pop off of the priorityqueue and randomly select pieces from the rarity.peers list to determine which peers
+		  will be requesting which pieces. Also find a way to loop the code back on itself if the whole file was not downloaded
+		  on the first attempt*/
     }
 
     /* +++++++++++++++++++++++++++++++ GET METHODS +++++++++++++++++++++++++++++++++++ */
@@ -85,15 +127,14 @@ public class DownloadManager extends Thread {
      * @param piece A ByteArrayOutputStream containing the bytes of the piece.
      * @param index The index of the piece.
      */
-    public static void savePiece(ByteArrayOutputStream piece, int index, Peer hasLock) {
-        synchronized (hasLock) {
-            RUBTClient.piecesDL[index] = piece;
-            RUBTClient.intBitField[index] = 2; // has piece
-            RUBTClient.Bitfield.set(index);
-            saveDownloadState();
-            //broadCastHas(index);
-        }
-        if (RUBTClient.Bitfield.cardinality() == RUBTClient.numPieces) {
+    public synchronized static void savePiece(ByteArrayOutputStream piece, int index, Peer hasLock) {
+		RUBTClient.piecesDL[index] = piece;
+		RUBTClient.intBitField[index] = 2; // has piece
+		RUBTClient.Bitfield.set(index);
+		saveDownloadState();
+		//broadCastHas(index);
+        if (RUBTClient.Bitfield.cardinality() == RUBTClient.numPieces)
+		{
             RUBTClient.writeFile();
             closePeers();
         }
@@ -107,13 +148,11 @@ public class DownloadManager extends Thread {
      * @return True if the piece has been downloaded false if not.
      */
     public static synchronized boolean hasPiece(int index, Peer hasLock) {
-        synchronized (hasLock) {
-            boolean returnThis = RUBTClient.intBitField[index] == 0;
-            if (returnThis) {
-                RUBTClient.intBitField[index] = 1; // downloading piece
-            }
-            return returnThis;
-        }
+		boolean returnThis = RUBTClient.intBitField[index] != 0;
+		if (returnThis)
+			RUBTClient.intBitField[index] = 1; // downloading piece
+		System.out.println("######################"+returnThis+" piece number : "+index+" from peer : "+hasLock.ThreadID	);
+		return returnThis;
     }
 
     /**
