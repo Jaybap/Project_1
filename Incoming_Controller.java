@@ -1,4 +1,3 @@
-
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -239,6 +238,18 @@ public class Incoming_Controller extends Thread {
             System.err.println("ERROR: Unable to receive peer response. ");
             return null;
         }
+    }
+    
+    public static void sendunchoke( Socket peerSocket, DataOutputStream client2peer, DataInputStream peer2client) {
+        Messages.unchoke(peerSocket,client2peer,peer2client)
+        this.isClientchoking=false;
+        
+    }
+    
+    public static void sendchoke( Socket peerSocket, DataOutputStream client2peer, DataInputStream peer2client) {
+        Messages.choke(peerSocket,client2peer,peer2client)
+        this.isClientchoking=true;
+        
     }
 
     public static void terminateSocketConnections(Socket peerSocket, DataOutputStream client2peer, DataInputStream peer2client) {
