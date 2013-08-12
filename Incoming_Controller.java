@@ -40,6 +40,8 @@ public class Incoming_Controller extends Thread {
     final int KEY_CANCEL = 8;
     final int KEY_PORT = 9;
     float upload_rate;
+    DataInputStream frompeer;
+    DataOutputStream topeer;
 
     Incoming_Controller(Tracker tracker, TorrentInfo torr, RUBTClient c) {
 
@@ -65,8 +67,8 @@ public class Incoming_Controller extends Thread {
                 InetAddress ip = peersocket.getInetAddress();
                 int port = peersocket.getPort();
                 
-                DataInputStream frompeer = new DataInputStream(peersocket.getInputStream());
-                DataOutputStream topeer = new DataOutputStream(peersocket.getOutputStream());
+                frompeer = new DataInputStream(peersocket.getInputStream());
+                topeer = new DataOutputStream(peersocket.getOutputStream());
 
                 /**
                  * Reads in the handshake response from new peer
