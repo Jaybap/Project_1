@@ -1,4 +1,3 @@
-
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.Random;
@@ -13,6 +12,7 @@ public class Optimistic_Unchoker extends Thread {
 
     public Optimistic_Unchoker() {
         this.am_alive = true;
+        this.start;
     }
 
     public void run() {
