@@ -42,6 +42,7 @@ public class Incoming_Controller extends Thread {
     float upload_rate;
     DataInputStream frompeer;
     DataOutputStream topeer;
+    Socket peersocket;
 
     Incoming_Controller(Tracker tracker, TorrentInfo torr, RUBTClient c) {
 
@@ -63,7 +64,7 @@ public class Incoming_Controller extends Thread {
                 /**
                  * waits for incoming connection
                  */
-                Socket peersocket = incoming.accept();
+                peersocket = incoming.accept();
                 InetAddress ip = peersocket.getInetAddress();
                 int port = peersocket.getPort();
                 
