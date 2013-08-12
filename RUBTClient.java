@@ -134,6 +134,7 @@ public class RUBTClient {
 		RUBTClient client;
 		Tracker tracker;
 		String localPeer ="";
+		Optimistic_Unchoker unchoker= new Optimistic_Unchoker();
 
 		/** Check if valid number of arguments in the command line */ 
 		if (!validateNumArgs(args)) {
@@ -164,6 +165,7 @@ public class RUBTClient {
 
                 /** Initialize Tracker */
 		tracker = new Tracker(client, torrent);
+		
 		
 		/* ================ */
 		/* Print Statements */
