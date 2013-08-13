@@ -137,7 +137,7 @@ public class RUBTClient {
 		
 		////////////////////////////////////////Uncomment me please!!!///////////////////////////////////////////
 		
-		Optimistic_Unchoker unchoker= new Optimistic_Unchoker();
+		// Optimistic_Unchoker unchoker= new Optimistic_Unchoker();
 
 		////////////////////////////////////////Uncomment me please!!!///////////////////////////////////////////
 		// the previous line was commented to work around some bugs while i worked on a different part of the code. ~ Alex
@@ -213,6 +213,7 @@ public class RUBTClient {
 				System.err.println("Error: Problem sleeping main thread");
 			}
 		}
+		downloader.outputtofile(false);
 		System.exit(0);
 	}
 	
@@ -251,8 +252,11 @@ public class RUBTClient {
 				{
 					piecesDL[i] = new ByteArrayOutputStream();
 					piecesDL[i].write(buffer);
-					intBitField[i] = 2; // has piece
-					Bitfield.set(i);
+					if (piecesDL[i].size() > 0)
+					{
+						intBitField[i] = 2; // has piece
+						Bitfield.set(i);
+					}
 				}
 			}
 		}

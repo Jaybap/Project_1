@@ -31,6 +31,7 @@ public class DownloadManager extends Thread {
     private TorrentInfo torrent;
     private static ArrayList<Peer> peers = new ArrayList<Peer>();
     private RUBTClient client;
+	private static String output = "";
     private boolean stillRunning;
 
     public DownloadManager(RUBTClient r, Tracker t) {
@@ -57,13 +58,13 @@ public class DownloadManager extends Thread {
 			{
 				try
 				{
-					System.out.println("PeerIP: " + newIP);
+					output += "\n"+("PeerIP: " + newIP);
 					
 					int newPort = Integer.parseInt(ipParts[1]);
-					System.out.println("PeerPort: " + newPort);
+					output += "\n"+("PeerPort: " + newPort);
 
 					peers.add(new Peer(newIP, newPort, false, null, id++));
-					System.out.println("Peer has been added to List. ");
+					output += "\n"+("Peer has been added to List. ");
 				}
 				catch(Exception e)
 				{
@@ -102,34 +103,38 @@ public class DownloadManager extends Thread {
 		{
 			Rarity newRare = new Rarity(i, peers);
 			rarelist.add(newRare);
-			//System.out.println(newRare.toString());
+			//output += "\n"+(newRare.toString());
 		}
 	
 		while(rarelist.size() != 0)
 		{
-			System.out.println("Size of rarelist : " + rarelist.size());
+			output += "\n"+("Size of rarelist : " + rarelist.size());
 			for(int i = 0; i < rarelist.size(); i++)
 			{
 				Rarity currentRarity = rarelist.poll();
-				Peer requestFrom;
-				if ((requestFrom = currentRarity.getRandomPeer()) == null) // list is empty in the rarity need to double check if we have already downloaded the piece
+				Peer requestFrom = currentRarity.getRandomPeer();
+				output += "\nPoped off rare tracking " + ((currentRarity == null) ? "null":currentRarity.getPieceNumber()) + " and removed peer " + ((requestFrom == null) ? "null":requestFrom.ThreadID) + "\n";
+				if (requestFrom == null) // list is empty in the rarity need to double check if we have already downloaded the piece
 				{
-					System.out.println("There are no peers left in rare object tracking piece : " + currentRarity.getPieceNumber());
+					output += "\n"+("There are no peers left in rare object tracking piece : " + currentRarity.getPieceNumber());
 					//rarelist.add(currentRarity);
 					continue;
 				}
-				if (hasPiece(currentRarity.getPieceNumber(), requestFrom) == 2) // if the piece is already downloaded do not readd the rarity just skip to next iteration
+				if (hasPiece(currentRarity.getPieceNumber()) == 2 || client.Bitfield.get(currentRarity.getPieceNumber())) // if the piece is already downloaded do not readd the rarity just skip to next iteration
 				{
-					System.out.println("Skipping piece " + currentRarity.getPieceNumber() + " we already have it");
+					output += "\n"+("Skipping piece " + currentRarity.getPieceNumber() + " we already have it");
+					rarelist.remove();
 					continue;
 				}
-				else if (hasPiece(currentRarity.getPieceNumber(), requestFrom) == 1)
+				else if (hasPiece(currentRarity.getPieceNumber()) == 1)
 				{
-					System.out.println("Re adding current peer to current rarity because the piece may be downloading by another peer");
+					output += "\n"+("Re adding current peer to current rarity because the piece may be downloading by another peer");
 					currentRarity.add(requestFrom);
 					rarelist.add(currentRarity);
 					continue;
 				}
+				else
+					client.intBitField[currentRarity.getPieceNumber()] = 1;
 				requestFrom.addPieceToDownloadList(currentRarity.getPieceNumber());
 				rarelist.add(currentRarity);
 				
@@ -141,15 +146,18 @@ public class DownloadManager extends Thread {
 			}
 			try
 			{
-				System.out.println("Second sleep");
+				output += "\n"+("Second sleep\n\ncurrent state of the intbitfield : ");
 				Thread.sleep(1000);
+				for(int i : RUBTClient.intBitField)
+					output += i+", ";
+				output += "\n\n";
 			}
 			catch(InterruptedException e)
 			{
 				System.err.println("There was a problem sleeping the download manager");
 			}
 		}
-		System.out.println("Download Manager has ended its run sequence");
+		output += "\n"+("Download Manager has ended its run sequence");
     }
 
     /* +++++++++++++++++++++++++++++++ GET METHODS +++++++++++++++++++++++++++++++++++ */
@@ -175,9 +183,9 @@ public class DownloadManager extends Thread {
 		RUBTClient.intBitField[index] = 2; // has piece
 		RUBTClient.Bitfield.set(index);
 		RUBTClient.updateBytesDownloaded(piece.size());
-		System.out.println(RUBTClient.bytesDownloaded + "/" + RUBTClient.torrent.file_length);
+		output += "\n"+(RUBTClient.bytesDownloaded + "/" + RUBTClient.torrent.file_length);
 		saveDownloadState();
-		outputtofile();
+		outputtofile(true);
 		//broadCastHas(index);
         if (RUBTClient.Bitfield.cardinality() == RUBTClient.numPieces)
 		{
@@ -193,10 +201,8 @@ public class DownloadManager extends Thread {
      * @param index The index number of the piece.
      * @return 2 if the piece has been downloaded 1 if its being downloaded and 0 if its not been touched.
      */
-    public static synchronized int hasPiece(int index, Peer hasLock) // remove hasLock its not needed used atm for debugging
+    public static synchronized int hasPiece(int index) // remove hasLock its not needed used atm for debugging
 	{
-		if (RUBTClient.intBitField[index] != 0)
-			RUBTClient.intBitField[index] = 1; // downloading piece
 		return RUBTClient.intBitField[index];
     }
 
@@ -223,18 +229,32 @@ public class DownloadManager extends Thread {
     }
 
 	// used for debugging
-	public synchronized static void outputtofile()
+	public synchronized static void outputtofile(boolean fromPeer)
 	{
-		for(int i = 0; i < peers.size(); i++)
+		if (fromPeer)
+			for(int i = 0; i < peers.size(); i++)
+			{
+				File f = new File("peer" + i + ".log");
+				try {
+					FileOutputStream fileOut = new FileOutputStream(f);
+					ObjectOutputStream out = new ObjectOutputStream(fileOut);
+					if (peers.get(i).output.equals(""))
+						continue;
+					else
+						out.writeObject(peers.get(i).output);
+					out.close();
+					fileOut.close();
+				} catch (IOException e) {
+					System.err.println("Error: Problem occured saving the current state of the file.");
+				}
+			}
+		else
 		{
-			File f = new File("peer" + i + ".log");
+			File f = new File("downloadManager.log");
 			try {
 				FileOutputStream fileOut = new FileOutputStream(f);
 				ObjectOutputStream out = new ObjectOutputStream(fileOut);
-				if (peers.get(i).equals(""))
-					continue;
-				else
-					out.writeObject(peers.get(i).output);
+				out.writeObject(output);
 				out.close();
 				fileOut.close();
 			} catch (IOException e) {

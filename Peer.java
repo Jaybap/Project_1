@@ -313,10 +313,10 @@ public class Peer extends Thread{
 			}
 
 			int numBlks = RUBTClient.numBlkPieceRatio;
-			ArrayList<Integer> threadProtect = new ArrayList<Integer>();
 
 			while (am_alive && is_interested)
 			{
+				ArrayList<Integer> threadProtect = new ArrayList<Integer>();
 				while(downloadList.size() == 0)
 				{
 					try
@@ -324,61 +324,68 @@ public class Peer extends Thread{
 						Thread.sleep(20000);
 					}
 					catch(InterruptedException e)
-					{
-						threadProtect.addAll(downloadList);
-					}
+					{}
+				}
+				synchronized(downloadList)
+				{
+					threadProtect.addAll(downloadList);
+					downloadList.clear();
 				}
 
 				for(Integer piecenum : threadProtect)
 				{
 					int i = piecenum.intValue();
-					if (DownloadManager.hasPiece(i, this) == 0 && peerbitfield.get(i))
+					ByteArrayOutputStream currentPiece = new ByteArrayOutputStream();
+					output += "\n"+ ("Request Piece " + i);
+					if (i == RUBTClient.numPieces - 1)
 					{
-						ByteArrayOutputStream currentPiece = new ByteArrayOutputStream();
-						output += "\n"+ ("Request Piece " + i);
-						if (i == RUBTClient.numPieces - 1)
-						{
-							numBlks = (int) Math.ceil((double) RUBTClient.lastPieceSize / (double) RUBTClient.blockLength);
-							output += "\n"+ ("Blocks for last piece " + numBlks);
-						}
-						/* blocks */
-						for (int j = 0; j < numBlks; j++)
-						{
-							output += "\n"+ ("Request Block " + j);
-							if (j == numBlks - 1) {
-								if (i == RUBTClient.numPieces - 1)
-								{
-									Messages.request(i, j * RUBTClient.blockLength, RUBTClient.lastBlkSize, client2peer, peer2client, peerSocket);
-								}
-								else
-								{
-									Messages.request(i, j * RUBTClient.blockLength, RUBTClient.torrent.piece_length - (j * RUBTClient.blockLength), client2peer, peer2client, peerSocket);
-								}
+						numBlks = (int) Math.ceil((double) RUBTClient.lastPieceSize / (double) RUBTClient.blockLength);
+						output += "\n"+ ("Blocks for last piece " + numBlks);
+					}
+					/* blocks */
+					for (int j = 0; j < numBlks; j++)
+					{
+						output += "\n"+ ("Request Block " + j);
+						if (j == numBlks - 1) {
+							if (i == RUBTClient.numPieces - 1)
+							{
+								Messages.request(i, j * RUBTClient.blockLength, RUBTClient.lastBlkSize, client2peer, peer2client, peerSocket);
 							}
 							else
 							{
-								Messages.request(i, j * RUBTClient.blockLength, RUBTClient.blockLength, client2peer, peer2client, peerSocket);
-							}
-							int length = getPeerResponseInt();
-							output += "\n"+ ("Length of the last read int is : " + length);
-							byte[] block = new byte[length - 9];
-							output += "\n"+ (", and the message type was : " + block[0]);
-							System.arraycopy(getPeerResponse(length), 9, block, 0, length - 9);
-
-							try
-							{
-								currentPiece.write(block);
-							}
-							catch (IOException e)
-							{
-								System.err.println("Error: Problem saving block " + j + " of piece " + i);
+								Messages.request(i, j * RUBTClient.blockLength, RUBTClient.torrent.piece_length - (j * RUBTClient.blockLength), client2peer, peer2client, peerSocket);
 							}
 						}
-						if (verifySHA(currentPiece.toByteArray(), i))
+						else
 						{
-							DownloadManager.savePiece(currentPiece, i, this);
+							Messages.request(i, j * RUBTClient.blockLength, RUBTClient.blockLength, client2peer, peer2client, peerSocket);
 						}
-					}//end of if statement
+						int length = getPeerResponseInt();
+						if (length == 0)
+						{
+							output += "\nSend Keep Alive";
+							Messages.keepAlive(client2peer);
+							length = getPeerResponseInt();
+						}
+						output += "\n"+ ("Length of the last read int is : " + length);
+						byte[] block = new byte[length - 9];
+						output += "\n"+ (", and the message type was : " + block[0]);
+						System.arraycopy(getPeerResponse(length), 9, block, 0, length - 9);
+
+						try
+						{
+							currentPiece.write(block);
+						}
+						catch (IOException e)
+						{
+							System.err.println("Error: Problem saving block " + j + " of piece " + i);
+						}
+					}
+					if (verifySHA(currentPiece.toByteArray(), i))
+					{
+						output += "\nSaving piece " + i + "\n\n";
+						DownloadManager.savePiece(currentPiece, i, this);
+					}
 				}//end of for loop
 			}//end of while loop
 		}//end of else
