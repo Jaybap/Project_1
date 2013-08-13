@@ -42,7 +42,7 @@ public class RUBTClient {
 	
 	/** Download Information */
 	public static ByteArrayOutputStream [] piecesDL;
-	public int bytesDownloaded;
+	public static int bytesDownloaded;
 	public int bytesUploaded;
 	public int bytesRemaining;
 	public static String event;
@@ -134,8 +134,14 @@ public class RUBTClient {
 		RUBTClient client;
 		Tracker tracker;
 		String localPeer ="";
+		
+		////////////////////////////////////////Uncomment me please!!!///////////////////////////////////////////
+		
 		Optimistic_Unchoker unchoker= new Optimistic_Unchoker();
 
+		////////////////////////////////////////Uncomment me please!!!///////////////////////////////////////////
+		// the previous line was commented to work around some bugs while i worked on a different part of the code. ~ Alex
+		
 		/** Check if valid number of arguments in the command line */ 
 		if (!validateNumArgs(args)) {
 			System.out.println("USAGE: RUBTClient [torrent-file-to-read] [file-name-to-save]");
@@ -165,7 +171,6 @@ public class RUBTClient {
 
                 /** Initialize Tracker */
 		tracker = new Tracker(client, torrent);
-		
 		
 		/* ================ */
 		/* Print Statements */
@@ -217,6 +222,15 @@ public class RUBTClient {
 	/* 									METHODS  										*/  
 	/* ================================================================================ */
 
+	/** METHOD: Updates the golbal variable bytesDownloaded.
+	  *
+	  *	@param numBytes The amount by which bytesDownloaded should be incremented.
+	  */
+	public static void updateBytesDownloaded(int numBytes)
+	{
+		bytesDownloaded += numBytes;
+	}
+
 	/**
 	  *  Method: Checks to see if there is a previously saved download state for this 
 	  *  torrent file
@@ -237,6 +251,8 @@ public class RUBTClient {
 				{
 					piecesDL[i] = new ByteArrayOutputStream();
 					piecesDL[i].write(buffer);
+					intBitField[i] = 2; // has piece
+					Bitfield.set(i);
 				}
 			}
 		}
@@ -449,8 +465,8 @@ public class RUBTClient {
 		return peerID;
 	}
         
-        /** Retrieves bit-field */
-        public static BitSet getBitfield(){
+	/** Retrieves bit-field */
+	public static BitSet getBitfield(){
             return Bitfield;
         }
 }

@@ -31,15 +31,18 @@ public class Rarity implements Comparable<Rarity>
 
 	public Peer getRandomPeer()
 	{
+		if (counter == 0)
+			return null;
 		int ran = (int)(Math.random() * counter);
-		return peers.get(ran);
+		counter--;
+		return peers.remove(ran);
 	}
 
 	public int compareTo(Rarity other)
 	{
 		if(this.equals(other))
 			return 0;
-		return this.getCount() - other.getCount();
+		return other.getCount() - this.getCount();
 	}
 	
 	public boolean equals(Object o)
@@ -82,24 +85,24 @@ public class Rarity implements Comparable<Rarity>
 		return added;
 	}
 
-	public boolean remove(Peer peer)
-	{
-		if(peer != null && peer.getBitField().get(index))
-		{
-			counter--;
-			return true;
-		}
-		return false;
-	}
+	// public boolean remove(Peer peer)
+	// {
+		// if(peer != null && peer.getBitField().get(index))
+		// {
+			// counter--;
+			// return true;
+		// }
+		// return false;
+	// }
 
-	public boolean remove(ArrayList<Peer> peers)
-	{
-		boolean removed = false;
-		for(Peer p: peers)
-			if(remove(p))
-				removed = true;
-		return removed;
-	}
+	// public boolean remove(ArrayList<Peer> peers)
+	// {
+		// boolean removed = false;
+		// for(Peer p: peers)
+			// if(remove(p))
+				// removed = true;
+		// return removed;
+	// }
 
 	public String toString()
 	{

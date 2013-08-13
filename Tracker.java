@@ -240,11 +240,8 @@ public class Tracker extends Thread{
 
         for (int i = 0; i < decodedTrkResponse.length; i++) {
             String[] peerString = decodedTrkResponse[i].split(delims);
-
-            if (peerString[0].equals("128.6.171.3") || peerString[0].equals("128.6.171.4")) {
-                peerIPList.add(decodedTrkResponse[i]);
-                System.out.println("Found Peer : " + decodedTrkResponse[i]);
-            }
+			peerIPList.add(decodedTrkResponse[i]);
+			System.out.println("Found Peer : " + decodedTrkResponse[i]);
         }
     }
 
