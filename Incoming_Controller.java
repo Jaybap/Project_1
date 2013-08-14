@@ -146,7 +146,7 @@ public class Incoming_Controller extends Thread {
                                         }
                                         
                                             RUBTClient.choked_peers.add(this);
-                                            if (Messages.choke(topeer)) {
+                                            if (Messages.choke(peersocket, topeer, frompeer)) {
 
                                                 System.out.println("Peer " + peer_id + " has been choked");
                                             }
