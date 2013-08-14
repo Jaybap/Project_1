@@ -15,7 +15,7 @@ import java.security.MessageDigest;
  * @author Alex DeOliveira  [126-00-8635]
  * @author Jason Baptista   [126-00-4630]
  * @author Elizabeth Sanz   [127-00-8628]
- * @version "project01"
+ * @version "project02"
  */
 public class Peer extends Thread{
 
@@ -84,7 +84,10 @@ public class Peer extends Thread{
     // =========================================================================
     // METHODS  									
     // =========================================================================
-
+    /**
+     * This method adds a piece to the download list
+     * @param newPiece is the piece that is to be adding to the download list
+     */
 	public void addPieceToDownloadList(int newPiece)
 	{
 		downloadList.add(new Integer(newPiece));
@@ -400,7 +403,6 @@ public class Peer extends Thread{
 
     /**
      * This method receives the response bitfield 
-     *
      * @param length 
      */
     private void receiveBitField(int length) throws Exception {
@@ -437,7 +439,6 @@ public class Peer extends Thread{
     
     /**
      * This method receives the response and stores the bitfield 
-     *
      * @param response, the byte array of the response received
      */
     public void receiveBitfield(byte[] response) {
@@ -567,7 +568,11 @@ public class Peer extends Thread{
     // =========================================================================
     // SET METHODS								
     // =========================================================================
-
+   /**
+     * This method sets the boolean "start" to true if set, otherwise, 
+     * closes the peer connection
+     * @param set 
+     */
 	public void setStart(boolean set)
 	{
 		if (set)
@@ -608,6 +613,7 @@ public class Peer extends Thread{
 
     /** 
      * This method sets this peers ID to the given value  
+     * @param newID
      */
     public void setPeerID(byte[] newID) {
         peerID = newID;
@@ -761,8 +767,6 @@ public class Peer extends Thread{
     
     /**
      * This method will close peer socket connections
-     * 
-     * @throws Exception
      */
     private void closeConnection() {
         try {
