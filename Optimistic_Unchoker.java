@@ -4,7 +4,7 @@ import java.util.Random;
 
 /**
  * Optimistic_Unchoker Class Main Functions: 
- * 1) Choke all but 3 peers based on download rate
+ * 1) Choke all but 3 peers based on upload rate
  * 
  * @author Alex DeOliveira [126-00-8635]
  * @author Jason Baptista [126-00-4630]
