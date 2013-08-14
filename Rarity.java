@@ -1,4 +1,15 @@
+
 import java.util.*;
+
+
+/**
+ * Rarity Class
+ * 
+ * @author Alex DeOliveira [126-00-8635]
+ * @author Jason Baptista [126-00-4630]
+ * @author Elizabeth Sanz [127-00-8628]
+ * @version "project02"
+ */
 
 public class Rarity implements Comparable<Rarity>
 {
@@ -9,12 +20,16 @@ public class Rarity implements Comparable<Rarity>
 	/*The list peers which have the piece*/
 	private ArrayList<Peer> peers;
 
+        
+    /* ================================================================================ */
+    /* Rarity Constructor								*/
+    /* ================================================================================ */
 	public Rarity(int index)
 	{
 		this.index = index;
 		peers = new ArrayList<Peer>();
 	}
-
+       
 	public Rarity(int index, Peer peer)
 	{
 		this.index = index;
@@ -29,7 +44,14 @@ public class Rarity implements Comparable<Rarity>
 		add(addPeers);
 	}
 
-	public Peer getRandomPeer()
+        /* ================================================================================ */
+        /* Methods              							    */
+        /* ================================================================================ */
+
+       /**
+        * METHOD: gets a random peer
+        */
+        public Peer getRandomPeer()
 	{
 		if (counter == 0)
 			return null;
@@ -38,6 +60,12 @@ public class Rarity implements Comparable<Rarity>
 		return peers.remove(ran);
 	}
 
+        /**
+        * METHOD: compares Rarity object
+        *
+        * @param other rarity object 
+        * @return integer
+        */
 	public int compareTo(Rarity other)
 	{
 		if(this.equals(other))
@@ -45,6 +73,12 @@ public class Rarity implements Comparable<Rarity>
 		return other.getCount() - this.getCount();
 	}
 	
+        /**
+        * METHOD: compares piece number 
+        *
+        * @param index The index number of the piece.
+        * @return boolean, true if piece number are the same, false otherwise
+        */
 	public boolean equals(Object o)
 	{
 		if(!(o instanceof Rarity))
@@ -55,16 +89,28 @@ public class Rarity implements Comparable<Rarity>
 		return false;
 	}
 
+        /**
+         * Method: returns the piece index number  
+         */
 	public int getPieceNumber()
 	{
 		return index;
 	}  
 
+        /**
+         * Method: returns the counter
+         */
 	public int getCount()
 	{
 		return counter;
 	}
 
+        /**
+         * Method: adds a peer to the peer list based on conditions
+         * @param peer a peer object
+         * @return boolean, true if peer is not null, is connected, and has piece
+         *         false otherwise
+         */
 	public boolean add(Peer peer)
 	{
 		if(peer != null && peer.am_alive && peer.getBitField().get(index))
@@ -76,6 +122,11 @@ public class Rarity implements Comparable<Rarity>
 		return false;
 	}
 
+        /**
+         * Method: rebuilds the peer list
+         * @param peers an array list of Peer
+         * @return boolean, true if any peers are added, false otherwise
+         */
 	public boolean add(ArrayList<Peer> peers)
 	{
 		boolean added = false;
