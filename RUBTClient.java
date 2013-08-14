@@ -1,4 +1,3 @@
-
 import java.io.*;
 import java.util.Random;
 import java.util.Map;
@@ -54,6 +53,8 @@ public class RUBTClient {
     public static int lastBlkSize = 0;
     public static int lastPieceSize = 0;
     public static boolean startDownload = true;
+    public static Incoming_Controller[] uploadconnections=new Incoming_Controller[3];
+    public static ArrayList<Incoming_Controller> choked_peers;
 
     /* ================================================================================ */
     /* RUBTClient Constructor								*/
